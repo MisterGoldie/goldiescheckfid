@@ -96,9 +96,11 @@ async function getFarcasterProfile(fid: string): Promise<{ username: string; pfp
     }
     const data = await response.json();
     console.log('Neynar API response:', JSON.stringify(data, null, 2));
+    const pfp = data.result.user.pfp?.url || null;
+    console.log('Profile picture URL:', pfp);
     return {
       username: data.result.user.username || `fid:${cleanFid}`,
-      pfp: data.result.user.pfp?.url || null
+      pfp: pfp
     };
   } catch (error) {
     console.error('Error fetching Farcaster profile:', error);
@@ -180,13 +182,31 @@ app.frame('/check', async (c) => {
     const usdValueDisplay = `(~$${usdValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD)`
 
     const profileInfo = fid ? await getFarcasterProfile(`fid:${fid}`) : { username: address || 'Unknown', pfp: null }
+    console.log('Profile info:', profileInfo);
 
     return c.res({
       image: (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundColor: '#FF8B19', padding: '20px', boxSizing: 'border-box' }}>
           <h1 style={{ fontSize: '60px', marginBottom: '20px', textAlign: 'center' }}>Your $GOLDIES Balance</h1>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
-            {profileInfo.pfp && <img src={profileInfo.pfp} alt="Profile" style={{ width: '64px', height: '64px', borderRadius: '50%', marginRight: '10px' }} />}
+            {profileInfo.pfp ? (
+              <img 
+                src={profileInfo.pfp} 
+                alt="Profile" 
+                style={{ width: '64px', height: '64px', borderRadius: '50%', marginRight: '10px' }}
+                onError={(e: Event) => {
+                  if (e.currentTarget instanceof HTMLImageElement) {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.style.display = 'none';
+                  }
+                  console.error('Failed to load profile picture');
+                }}
+              />
+            ) : (
+              <div style={{ width: '64px', height: '64px', borderRadius: '50%', marginRight: '10px', backgroundColor: '#ccc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {profileInfo.username.charAt(0).toUpperCase()}
+              </div>
+            )}
             <p style={{ fontSize: '32px', textAlign: 'center' }}>{profileInfo.username}</p>
           </div>
           <p style={{ fontSize: '42px', textAlign: 'center' }}>{balanceDisplay}</p>
