@@ -12,6 +12,8 @@ export const app = new Frog({
 const GOLDIES_TOKEN_ADDRESS = '0x3150E01c36ad3Af80bA16C1836eFCD967E96776e'
 const ALCHEMY_POLYGON_URL = 'https://polygon-mainnet.g.alchemy.com/v2/pe-VGWmYoLZ0RjSXwviVMNIDLGwgfkao'
 const POLYGON_CHAIN_ID = 137
+const NEYNAR_API_KEY = '71332A9D-240D-41E0-8644-31BD70E64036'
+const NEYNAR_API_URL = 'https://api.neynar.com/v2/farcaster'
 
 const ABI = [
   'function balanceOf(address account) view returns (uint256)',
@@ -82,6 +84,27 @@ async function getGoldiesUsdPrice(): Promise<number> {
   }
 }
 
+async function getFarcasterProfile(fid: number): Promise<{ username: string, pfp: string | null }> {
+  try {
+    const response = await fetch(`${NEYNAR_API_URL}/user?fid=${fid}`, {
+      headers: {
+        'api_key': NEYNAR_API_KEY
+      }
+    })
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json()
+    return {
+      username: data.result.username,
+      pfp: data.result.pfp?.url || null
+    }
+  } catch (error) {
+    console.error('Error fetching Farcaster profile:', error)
+    return { username: `fid:${fid}`, pfp: null }
+  }
+}
+
 app.frame('/', (c) => {
   return c.res({
     image: (
@@ -144,6 +167,7 @@ app.frame('/check', async (c) => {
   try {
     const address = await getAddressForFid(fid)
     const priceUsd = await getGoldiesUsdPrice()
+    const { username, pfp } = await getFarcasterProfile(fid)
 
     let balanceDisplay: string
     let usdValueDisplay: string
@@ -166,9 +190,12 @@ app.frame('/check', async (c) => {
       image: (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundColor: '#FF8B19', padding: '20px', boxSizing: 'border-box' }}>
           <h1 style={{ fontSize: '60px', marginBottom: '20px', textAlign: 'center' }}>Your $GOLDIES Info</h1>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
+            {pfp && <img src={pfp} alt="Profile" style={{ width: '64px', height: '64px', borderRadius: '50%', marginRight: '10px' }} />}
+            <p style={{ fontSize: '32px', textAlign: 'center' }}>{username} (FID: {fid})</p>
+          </div>
           <p style={{ fontSize: '42px', textAlign: 'center' }}>{balanceDisplay}</p>
           {usdValueDisplay && <p style={{ fontSize: '42px', textAlign: 'center' }}>{usdValueDisplay}</p>}
-          <p style={{ fontSize: '32px', marginTop: '20px', textAlign: 'center' }}>Farcaster ID: {fid}</p>
           {address && <p style={{ fontSize: '32px', marginTop: '10px', textAlign: 'center' }}>Address: {address}</p>}
           <p style={{ fontSize: '32px', marginTop: '10px', textAlign: 'center' }}>Network: Polygon (Chain ID: {POLYGON_CHAIN_ID})</p>
           <p style={{ fontSize: '26px', marginTop: '10px', textAlign: 'center' }}>Price: ${priceUsd.toFixed(8)} USD</p>
