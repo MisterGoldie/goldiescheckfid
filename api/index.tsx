@@ -20,15 +20,14 @@ const ABI = [
 
 async function getAddressForFid(fid: number): Promise<string | null> {
   // This is a placeholder function. You need to implement the actual logic to fetch the address.
-  // This might involve calling your own API or database where you store FID to address mappings.
   console.log('Fetching address for FID:', fid)
   // For now, we'll return null to indicate we couldn't find an address
   return null
 }
 
-async function getGoldiesBalance(addressOrFid: string): Promise<string> {
+async function getGoldiesBalance(address: string): Promise<string> {
   try {
-    console.log('Fetching balance for:', addressOrFid)
+    console.log('Fetching balance for address:', address)
     const provider = new ethers.JsonRpcProvider(ALCHEMY_POLYGON_URL, POLYGON_CHAIN_ID)
     console.log('Provider created')
 
@@ -39,7 +38,7 @@ async function getGoldiesBalance(addressOrFid: string): Promise<string> {
     console.log('Latest block number:', latestBlock)
 
     console.log('Calling balanceOf...')
-    const balance = await contract.balanceOf(addressOrFid, { blockTag: latestBlock })
+    const balance = await contract.balanceOf(address, { blockTag: latestBlock })
     console.log('Raw balance:', balance.toString())
 
     console.log('Fetching decimals...')
@@ -144,27 +143,33 @@ app.frame('/check', async (c) => {
 
   try {
     const address = await getAddressForFid(fid)
-    const identifier = address || `fid:${fid}`
-    console.log('Using identifier for balance check:', identifier)
-
-    const balance = await getGoldiesBalance(identifier)
     const priceUsd = await getGoldiesUsdPrice()
 
-    const balanceNumber = parseFloat(balance)
-    const balanceDisplay = balanceNumber === 0 
-      ? "You don't have any $GOLDIES tokens on Polygon yet!"
-      : `${balanceNumber.toLocaleString()} $GOLDIES on Polygon`
-    
-    const usdValue = balanceNumber * priceUsd
-    const usdValueDisplay = `(~$${usdValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD)`
+    let balanceDisplay: string
+    let usdValueDisplay: string
+
+    if (address) {
+      const balance = await getGoldiesBalance(address)
+      const balanceNumber = parseFloat(balance)
+      balanceDisplay = balanceNumber === 0 
+        ? "You don't have any $GOLDIES tokens on Polygon yet!"
+        : `${balanceNumber.toLocaleString()} $GOLDIES on Polygon`
+      
+      const usdValue = balanceNumber * priceUsd
+      usdValueDisplay = `(~$${usdValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD)`
+    } else {
+      balanceDisplay = "Unable to fetch balance. No associated Ethereum address found."
+      usdValueDisplay = ""
+    }
 
     return c.res({
       image: (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundColor: '#FF8B19', padding: '20px', boxSizing: 'border-box' }}>
-          <h1 style={{ fontSize: '60px', marginBottom: '20px', textAlign: 'center' }}>Your $GOLDIES Balance</h1>
+          <h1 style={{ fontSize: '60px', marginBottom: '20px', textAlign: 'center' }}>Your $GOLDIES Info</h1>
           <p style={{ fontSize: '42px', textAlign: 'center' }}>{balanceDisplay}</p>
-          <p style={{ fontSize: '42px', textAlign: 'center' }}>{usdValueDisplay}</p>
-          <p style={{ fontSize: '32px', marginTop: '20px', textAlign: 'center' }}>Identifier: {identifier}</p>
+          {usdValueDisplay && <p style={{ fontSize: '42px', textAlign: 'center' }}>{usdValueDisplay}</p>}
+          <p style={{ fontSize: '32px', marginTop: '20px', textAlign: 'center' }}>Farcaster ID: {fid}</p>
+          {address && <p style={{ fontSize: '32px', marginTop: '10px', textAlign: 'center' }}>Address: {address}</p>}
           <p style={{ fontSize: '32px', marginTop: '10px', textAlign: 'center' }}>Network: Polygon (Chain ID: {POLYGON_CHAIN_ID})</p>
           <p style={{ fontSize: '26px', marginTop: '10px', textAlign: 'center' }}>Price: ${priceUsd.toFixed(8)} USD</p>
         </div>
