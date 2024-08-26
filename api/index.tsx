@@ -12,6 +12,8 @@ export const app = new Frog({
 const GOLDIES_TOKEN_ADDRESS = '0x3150E01c36ad3Af80bA16C1836eFCD967E96776e'
 const ALCHEMY_POLYGON_URL = 'https://polygon-mainnet.g.alchemy.com/v2/pe-VGWmYoLZ0RjSXwviVMNIDLGwgfkao'
 const POLYGON_CHAIN_ID = 137
+const NEYNAR_API_KEY = '71332A9D-240D-41E0-8644-31BD70E64036'
+const NEYNAR_API_URL = 'https://api.neynar.com/v2/farcaster'
 
 const ABI = [
   'function balanceOf(address account) view returns (uint256)',
@@ -77,6 +79,27 @@ async function getGoldiesUsdPrice(): Promise<number> {
   } catch (error) {
     console.error('Error in getGoldiesUsdPrice:', error)
     throw error
+  }
+}
+
+async function getFarcasterProfile(fid: string): Promise<{ username: string; pfp: string | null }> {
+  try {
+    const response = await fetch(`${NEYNAR_API_URL}/user?fid=${fid.replace('fid:', '')}`, {
+      headers: {
+        'api_key': NEYNAR_API_KEY
+      }
+    })
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json()
+    return {
+      username: data.result.username,
+      pfp: data.result.pfp?.url || null
+    }
+  } catch (error) {
+    console.error('Error fetching Farcaster profile:', error)
+    return { username: fid, pfp: null }
   }
 }
 
@@ -152,10 +175,19 @@ app.frame('/check', async (c) => {
     const usdValue = balanceNumber * priceUsd
     const usdValueDisplay = `(~$${usdValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD)`
 
+    let profileInfo: { username: string; pfp: string | null } = { username: address, pfp: null }
+    if (address.startsWith('fid:')) {
+      profileInfo = await getFarcasterProfile(address)
+    }
+
     return c.res({
       image: (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundColor: '#FF8B19', padding: '20px', boxSizing: 'border-box' }}>
           <h1 style={{ fontSize: '60px', marginBottom: '20px', textAlign: 'center' }}>Your $GOLDIES Balance</h1>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
+            {profileInfo.pfp && <img src={profileInfo.pfp} alt="Profile" style={{ width: '64px', height: '64px', borderRadius: '50%', marginRight: '10px' }} />}
+            <p style={{ fontSize: '32px', textAlign: 'center' }}>{profileInfo.username}</p>
+          </div>
           <p style={{ fontSize: '42px', textAlign: 'center' }}>{balanceDisplay}</p>
           <p style={{ fontSize: '42px', textAlign: 'center' }}>{usdValueDisplay}</p>
           <p style={{ fontSize: '32px', marginTop: '20px', textAlign: 'center' }}>Address: {address}</p>
