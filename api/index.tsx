@@ -83,6 +83,14 @@ async function getGoldiesUsdPrice(): Promise<number> {
 }
 
 async function getFarcasterProfile(fid: string): Promise<{ username: string; pfp: string | null }> {
+  // Hard-coded profile for FID 7472
+  if (fid === 'fid:7472') {
+    return {
+      username: 'goldie',
+      pfp: 'https://res.cloudinary.com/merkle-manufactory/image/fetch/c_fill,f_gif,w_112,h_112/https://i.imgur.com/WdFhzT0.jpg'
+    }
+  }
+
   try {
     const response = await fetch(`${NEYNAR_API_URL}/user?fid=${fid.replace('fid:', '')}`, {
       headers: {
@@ -175,10 +183,7 @@ app.frame('/check', async (c) => {
     const usdValue = balanceNumber * priceUsd
     const usdValueDisplay = `(~$${usdValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD)`
 
-    let profileInfo: { username: string; pfp: string | null } = { username: address, pfp: null }
-    if (address.startsWith('fid:')) {
-      profileInfo = await getFarcasterProfile(address)
-    }
+    const profileInfo = await getFarcasterProfile(address)
 
     return c.res({
       image: (
