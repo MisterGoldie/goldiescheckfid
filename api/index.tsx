@@ -183,29 +183,32 @@ app.frame('/check', async (c) => {
     const profileInfo = fid ? await getFarcasterProfile(`fid:${fid}`) : { username: address || 'Unknown', pfp: null }
     console.log('Profile info:', JSON.stringify(profileInfo, null, 2));
 
+    // Log the exact image URL
+    console.log('Attempting to display image URL:', profileInfo.pfp);
+
+    // Fallback image URL (replace with an actual fallback image if you have one)
+    const fallbackImageUrl = 'https://placekitten.com/64/64';
+
+    // Use the profile picture URL if available, otherwise use the fallback
+    const imageUrl = profileInfo.pfp || fallbackImageUrl;
+
     return c.res({
       image: (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundColor: '#FF8B19', padding: '20px', boxSizing: 'border-box' }}>
           <h1 style={{ fontSize: '60px', marginBottom: '20px', textAlign: 'center' }}>Your $GOLDIES Balance</h1>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
-            {profileInfo.pfp ? (
-              <img 
-                src={profileInfo.pfp} 
-                alt="Profile" 
-                style={{ width: '64px', height: '64px', borderRadius: '50%', marginRight: '10px' }}
-                onError={(e: Event) => {
-                  if (e.currentTarget instanceof HTMLImageElement) {
-                    e.currentTarget.onerror = null;
-                    e.currentTarget.style.display = 'none';
-                    console.error('Failed to load profile picture:', profileInfo.pfp);
-                  }
-                }}
-              />
-            ) : (
-              <div style={{ width: '64px', height: '64px', borderRadius: '50%', marginRight: '10px', backgroundColor: '#ccc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {profileInfo.username.charAt(0).toUpperCase()}
-              </div>
-            )}
+            <div 
+              style={{ 
+                width: '64px', 
+                height: '64px', 
+                borderRadius: '50%', 
+                marginRight: '10px', 
+                backgroundColor: '#ccc',
+                backgroundImage: `url(${imageUrl})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center'
+              }}
+            />
             <p style={{ fontSize: '32px', textAlign: 'center' }}>{profileInfo.username}</p>
           </div>
           <p style={{ fontSize: '42px', textAlign: 'center' }}>{balanceDisplay}</p>
