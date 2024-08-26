@@ -95,13 +95,12 @@ async function getFarcasterProfile(fid: string): Promise<{ username: string; pfp
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const data = await response.json();
-    console.log('Neynar API response:', JSON.stringify(data, null, 2));
+    console.log('Neynar API full response:', JSON.stringify(data, null, 2));
     const pfp = data.result.user.pfp?.url || null;
     console.log('Profile picture URL:', pfp);
-    return {
-      username: data.result.user.username || `fid:${cleanFid}`,
-      pfp: pfp
-    };
+    const username = data.result.user.username || `fid:${cleanFid}`;
+    console.log('Username:', username);
+    return { username, pfp };
   } catch (error) {
     console.error('Error fetching Farcaster profile:', error);
     return { username: `fid:${fid.replace('fid:', '')}`, pfp: null };
@@ -182,7 +181,7 @@ app.frame('/check', async (c) => {
     const usdValueDisplay = `(~$${usdValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD)`
 
     const profileInfo = fid ? await getFarcasterProfile(`fid:${fid}`) : { username: address || 'Unknown', pfp: null }
-    console.log('Profile info:', profileInfo);
+    console.log('Profile info:', JSON.stringify(profileInfo, null, 2));
 
     return c.res({
       image: (
@@ -198,8 +197,8 @@ app.frame('/check', async (c) => {
                   if (e.currentTarget instanceof HTMLImageElement) {
                     e.currentTarget.onerror = null;
                     e.currentTarget.style.display = 'none';
+                    console.error('Failed to load profile picture:', profileInfo.pfp);
                   }
-                  console.error('Failed to load profile picture');
                 }}
               />
             ) : (
