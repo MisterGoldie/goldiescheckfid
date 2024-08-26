@@ -12,22 +12,20 @@ export const app = new Frog({
 const GOLDIES_TOKEN_ADDRESS = '0x3150E01c36ad3Af80bA16C1836eFCD967E96776e'
 const ALCHEMY_POLYGON_URL = 'https://polygon-mainnet.g.alchemy.com/v2/pe-VGWmYoLZ0RjSXwviVMNIDLGwgfkao'
 const POLYGON_CHAIN_ID = 137
-const NEYNAR_API_KEY = '71332A9D-240D-41E0-8644-31BD70E64036'
-const NEYNAR_API_URL = 'https://api.neynar.com/v2/farcaster'
 
 const ABI = [
   'function balanceOf(address account) view returns (uint256)',
   'function decimals() view returns (uint8)',
 ]
 
-async function getAddressForFid(fid: number): Promise<string | null> {
-  console.log('Fetching address for FID:', fid)
-  return null
-}
+async function getGoldiesBalance(addressOrFid: string): Promise<string> {
+  if (addressOrFid.startsWith('fid:')) {
+    console.log('FID provided instead of address. Unable to fetch balance.')
+    return '0'
+  }
 
-async function getGoldiesBalance(address: string): Promise<string> {
   try {
-    console.log('Fetching balance for address:', address)
+    console.log('Fetching balance for address:', addressOrFid)
     const provider = new ethers.JsonRpcProvider(ALCHEMY_POLYGON_URL, POLYGON_CHAIN_ID)
     console.log('Provider created')
 
@@ -38,7 +36,7 @@ async function getGoldiesBalance(address: string): Promise<string> {
     console.log('Latest block number:', latestBlock)
 
     console.log('Calling balanceOf...')
-    const balance = await contract.balanceOf(address, { blockTag: latestBlock })
+    const balance = await contract.balanceOf(addressOrFid, { blockTag: latestBlock })
     console.log('Raw balance:', balance.toString())
 
     console.log('Fetching decimals...')
@@ -79,27 +77,6 @@ async function getGoldiesUsdPrice(): Promise<number> {
   } catch (error) {
     console.error('Error in getGoldiesUsdPrice:', error)
     throw error
-  }
-}
-
-async function getFarcasterProfile(fid: number): Promise<{ username: string, pfp: string | null }> {
-  try {
-    const response = await fetch(`${NEYNAR_API_URL}/user?fid=${fid}`, {
-      headers: {
-        'api_key': NEYNAR_API_KEY
-      }
-    })
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    const data = await response.json()
-    return {
-      username: data.result.username,
-      pfp: data.result.pfp?.url || null
-    }
-  } catch (error) {
-    console.error('Error fetching Farcaster profile:', error)
-    return { username: `fid:${fid}`, pfp: null }
   }
 }
 
@@ -144,16 +121,16 @@ app.frame('/', (c) => {
 app.frame('/check', async (c) => {
   console.log('Full frameData:', JSON.stringify(c.frameData, null, 2))
   
-  const fid = c.frameData?.fid
-  console.log('Retrieved FID:', fid)
+  const address = c.frameData?.address || (c.frameData?.fid ? `fid:${c.frameData.fid}` : undefined)
+  console.log('Retrieved address or identifier:', address)
 
-  if (!fid) {
-    console.log('No FID found for the user.')
+  if (!address) {
+    console.log('No address or FID found for the user.')
     return c.res({
       image: (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundColor: '#FF8B19', padding: '20px', boxSizing: 'border-box' }}>
           <h1 style={{ fontSize: '48px', marginBottom: '20px', textAlign: 'center' }}>Error</h1>
-          <p style={{ fontSize: '36px', textAlign: 'center' }}>Unable to retrieve your Farcaster ID. Please ensure you're properly connected.</p>
+          <p style={{ fontSize: '36px', textAlign: 'center' }}>Unable to retrieve your wallet address or Farcaster ID. Please ensure you have a connected wallet or valid Farcaster profile.</p>
         </div>
       ),
       intents: [
@@ -163,43 +140,25 @@ app.frame('/check', async (c) => {
   }
 
   try {
-    const address = await getAddressForFid(fid)
+    console.log('Fetching balance and price for address:', address)
+    const balance = await getGoldiesBalance(address)
     const priceUsd = await getGoldiesUsdPrice()
-    const { username, pfp } = await getFarcasterProfile(fid)
 
-    console.log('Profile Picture URL:', pfp)
-
-    // Fallback to a placeholder image if pfp is null or empty
-    const profileImage = pfp || 'https://placekitten.com/64/64'
-
-    let balanceDisplay: string
-    let usdValueDisplay: string
-
-    if (address) {
-      const balance = await getGoldiesBalance(address)
-      const balanceNumber = parseFloat(balance)
-      balanceDisplay = balanceNumber === 0 
-        ? "You don't have any $GOLDIES tokens on Polygon yet!"
-        : `${balanceNumber.toLocaleString()} $GOLDIES on Polygon`
-      
-      const usdValue = balanceNumber * priceUsd
-      usdValueDisplay = `(~$${usdValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD)`
-    } else {
-      balanceDisplay = "Unable to fetch balance. No associated Ethereum address found."
-      usdValueDisplay = ""
-    }
+    const balanceNumber = parseFloat(balance)
+    const balanceDisplay = balanceNumber === 0 
+      ? "You don't have any $GOLDIES tokens on Polygon yet!"
+      : `${balanceNumber.toLocaleString()} $GOLDIES on Polygon`
+    
+    const usdValue = balanceNumber * priceUsd
+    const usdValueDisplay = `(~$${usdValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD)`
 
     return c.res({
       image: (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundColor: '#FF8B19', padding: '20px', boxSizing: 'border-box' }}>
-          <h1 style={{ fontSize: '60px', marginBottom: '20px', textAlign: 'center' }}>Your $GOLDIES Info</h1>
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
-            <img src={profileImage} alt="Profile" style={{ width: '64px', height: '64px', borderRadius: '50%', marginRight: '10px', objectFit: 'cover' }} />
-            <p style={{ fontSize: '32px', textAlign: 'center' }}>{username} (FID: {fid})</p>
-          </div>
+          <h1 style={{ fontSize: '60px', marginBottom: '20px', textAlign: 'center' }}>Your $GOLDIES Balance</h1>
           <p style={{ fontSize: '42px', textAlign: 'center' }}>{balanceDisplay}</p>
-          {usdValueDisplay && <p style={{ fontSize: '42px', textAlign: 'center' }}>{usdValueDisplay}</p>}
-          {address && <p style={{ fontSize: '32px', marginTop: '10px', textAlign: 'center' }}>Address: {address}</p>}
+          <p style={{ fontSize: '42px', textAlign: 'center' }}>{usdValueDisplay}</p>
+          <p style={{ fontSize: '32px', marginTop: '20px', textAlign: 'center' }}>Address: {address}</p>
           <p style={{ fontSize: '32px', marginTop: '10px', textAlign: 'center' }}>Network: Polygon (Chain ID: {POLYGON_CHAIN_ID})</p>
           <p style={{ fontSize: '26px', marginTop: '10px', textAlign: 'center' }}>Price: ${priceUsd.toFixed(8)} USD</p>
         </div>
