@@ -21,9 +21,7 @@ const ABI = [
 ]
 
 async function getAddressForFid(fid: number): Promise<string | null> {
-  // This is a placeholder function. You need to implement the actual logic to fetch the address.
   console.log('Fetching address for FID:', fid)
-  // For now, we'll return null to indicate we couldn't find an address
   return null
 }
 
@@ -191,7 +189,7 @@ app.frame('/check', async (c) => {
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundColor: '#FF8B19', padding: '20px', boxSizing: 'border-box' }}>
           <h1 style={{ fontSize: '60px', marginBottom: '20px', textAlign: 'center' }}>Your $GOLDIES Info</h1>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
-            {pfp && <img src={pfp} alt="Profile" style={{ width: '64px', height: '64px', borderRadius: '50%', marginRight: '10px' }} />}
+            {pfp && <img src={pfp} alt="Profile" style={{ width: '64px', height: '64px', borderRadius: '50%', marginRight: '10px', objectFit: 'cover' }} />}
             <p style={{ fontSize: '32px', textAlign: 'center' }}>{username} (FID: {fid})</p>
           </div>
           <p style={{ fontSize: '42px', textAlign: 'center' }}>{balanceDisplay}</p>
