@@ -84,7 +84,9 @@ async function getGoldiesUsdPrice(): Promise<number> {
 
 async function getFarcasterProfile(fid: string): Promise<{ username: string; pfp: string | null }> {
   try {
-    const response = await fetch(`${NEYNAR_API_URL}/user?fid=${fid.replace('fid:', '')}`, {
+    const cleanFid = fid.replace('fid:', '');
+    console.log('Fetching profile for FID:', cleanFid);
+    const response = await fetch(`${NEYNAR_API_URL}/user?fid=${cleanFid}`, {
       headers: {
         'api_key': NEYNAR_API_KEY
       }
@@ -93,13 +95,14 @@ async function getFarcasterProfile(fid: string): Promise<{ username: string; pfp
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const data = await response.json();
+    console.log('Neynar API response:', JSON.stringify(data, null, 2));
     return {
-      username: data.result.user.username,
+      username: data.result.user.username || `fid:${cleanFid}`,
       pfp: data.result.user.pfp?.url || null
     };
   } catch (error) {
     console.error('Error fetching Farcaster profile:', error);
-    return { username: fid, pfp: null };
+    return { username: `fid:${fid.replace('fid:', '')}`, pfp: null };
   }
 }
 
@@ -144,10 +147,11 @@ app.frame('/', (c) => {
 app.frame('/check', async (c) => {
   console.log('Full frameData:', JSON.stringify(c.frameData, null, 2))
   
-  const address = c.frameData?.address || (c.frameData?.fid ? `fid:${c.frameData.fid}` : undefined)
-  console.log('Retrieved address or identifier:', address)
+  const fid = c.frameData?.fid
+  const address = c.frameData?.address
+  console.log('Retrieved FID:', fid, 'Address:', address)
 
-  if (!address) {
+  if (!fid && !address) {
     console.log('No address or FID found for the user.')
     return c.res({
       image: (
@@ -163,8 +167,8 @@ app.frame('/check', async (c) => {
   }
 
   try {
-    console.log('Fetching balance and price for address:', address)
-    const balance = await getGoldiesBalance(address)
+    console.log('Fetching balance and price')
+    const balance = await getGoldiesBalance(address || `fid:${fid}`)
     const priceUsd = await getGoldiesUsdPrice()
 
     const balanceNumber = parseFloat(balance)
@@ -175,7 +179,7 @@ app.frame('/check', async (c) => {
     const usdValue = balanceNumber * priceUsd
     const usdValueDisplay = `(~$${usdValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD)`
 
-    const profileInfo = await getFarcasterProfile(address)
+    const profileInfo = fid ? await getFarcasterProfile(`fid:${fid}`) : { username: address || 'Unknown', pfp: null }
 
     return c.res({
       image: (
@@ -187,7 +191,7 @@ app.frame('/check', async (c) => {
           </div>
           <p style={{ fontSize: '42px', textAlign: 'center' }}>{balanceDisplay}</p>
           <p style={{ fontSize: '42px', textAlign: 'center' }}>{usdValueDisplay}</p>
-          <p style={{ fontSize: '32px', marginTop: '20px', textAlign: 'center' }}>Address: {address}</p>
+          <p style={{ fontSize: '32px', marginTop: '20px', textAlign: 'center' }}>Address: {address || `FID: ${fid}`}</p>
           <p style={{ fontSize: '32px', marginTop: '10px', textAlign: 'center' }}>Network: Polygon (Chain ID: {POLYGON_CHAIN_ID})</p>
           <p style={{ fontSize: '26px', marginTop: '10px', textAlign: 'center' }}>Price: ${priceUsd.toFixed(8)} USD</p>
         </div>
