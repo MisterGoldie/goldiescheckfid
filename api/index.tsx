@@ -83,31 +83,23 @@ async function getGoldiesUsdPrice(): Promise<number> {
 }
 
 async function getFarcasterProfile(fid: string): Promise<{ username: string; pfp: string | null }> {
-  // Hard-coded profile for FID 7472
-  if (fid === 'fid:7472') {
-    return {
-      username: 'goldie',
-      pfp: 'https://res.cloudinary.com/merkle-manufactory/image/fetch/c_fill,f_gif,w_112,h_112/https://i.imgur.com/WdFhzT0.jpg'
-    }
-  }
-
   try {
     const response = await fetch(`${NEYNAR_API_URL}/user?fid=${fid.replace('fid:', '')}`, {
       headers: {
         'api_key': NEYNAR_API_KEY
       }
-    })
+    });
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    const data = await response.json()
+    const data = await response.json();
     return {
-      username: data.result.username,
-      pfp: data.result.pfp?.url || null
-    }
+      username: data.result.user.username,
+      pfp: data.result.user.pfp?.url || null
+    };
   } catch (error) {
-    console.error('Error fetching Farcaster profile:', error)
-    return { username: fid, pfp: null }
+    console.error('Error fetching Farcaster profile:', error);
+    return { username: fid, pfp: null };
   }
 }
 
