@@ -12,6 +12,7 @@ export const app = new Frog({
 const GOLDIES_TOKEN_ADDRESS = '0x3150E01c36ad3Af80bA16C1836eFCD967E96776e'
 const ALCHEMY_POLYGON_URL = 'https://polygon-mainnet.g.alchemy.com/v2/pe-VGWmYoLZ0RjSXwviVMNIDLGwgfkao'
 const POLYGON_CHAIN_ID = 137
+const FALLBACK_ADDRESS = '0xB57381C7eD83BB9031a786d2C691cc6C7C2207a4' // Your address as a fallback
 
 const ABI = [
   'function balanceOf(address account) view returns (uint256)',
@@ -114,36 +115,30 @@ app.frame('/', (c) => {
 })
 
 app.frame('/check', async (c) => {
-  console.log('Full frameData:', c.frameData)
-  const address = c.frameData?.address
-  console.log('Extracted address:', address)
-
-  if (!address) {
-    console.log('No address found in frameData')
-    return c.res({
-      image: (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundColor: '#FF8B19', padding: '20px', boxSizing: 'border-box' }}>
-          <h1 style={{ fontSize: '48px', marginBottom: '20px', textAlign: 'center' }}>Error</h1>
-          <p style={{ fontSize: '36px', textAlign: 'center' }}>Unable to retrieve your wallet address. Please ensure your wallet is connected to Farcaster.</p>
-        </div>
-      ),
-      intents: [
-        <Button action="/">Back</Button>
-      ]
-    })
-  }
+  console.log('Full frameData:', JSON.stringify(c.frameData, null, 2))
+  let address = c.frameData?.address || FALLBACK_ADDRESS
+  console.log('Using address:', address)
 
   try {
     console.log('Fetching balance and price for address:', address)
-    const balance = await getGoldiesBalance(address)
+    let balance: string
+    try {
+      balance = await getGoldiesBalance(address)
+      console.log('Fetched balance:', balance)
+    } catch (balanceError) {
+      console.error('Error fetching balance:', balanceError)
+      balance = 'Error: Unable to fetch balance'
+    }
+
     let priceUsd: number | null = null
     let priceError: string | null = null
 
     try {
       priceUsd = await getGoldiesUsdPrice()
-    } catch (error) {
-      console.error('Failed to fetch $GOLDIES price:', error)
-      priceError = error instanceof Error ? error.message : 'Unknown error fetching price'
+      console.log('Fetched price:', priceUsd)
+    } catch (priceError) {
+      console.error('Failed to fetch $GOLDIES price:', priceError)
+      priceError = priceError instanceof Error ? priceError.message : 'Unknown error fetching price'
     }
 
     let balanceDisplay = ''
@@ -177,9 +172,6 @@ app.frame('/check', async (c) => {
           <p style={{ fontSize: '32px', marginTop: '10px', textAlign: 'center' }}>Network: Polygon (Chain ID: {POLYGON_CHAIN_ID})</p>
           {priceUsd !== null && (
             <p style={{ fontSize: '26px', marginTop: '10px', textAlign: 'center' }}>Price: ${priceUsd.toFixed(8)} USD</p>
-          )}
-          {priceError && (
-            <p style={{ fontSize: '18px', color: 'red', marginTop: '10px', textAlign: 'center' }}>Price Error: {priceError}</p>
           )}
         </div>
       ),
