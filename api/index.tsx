@@ -169,16 +169,8 @@ app.frame('/check', async (c) => {
 
     console.log('Profile Picture URL:', pfp)
 
-    let profileImage = pfp || 'https://placekitten.com/64/64' // Fallback to placeholder image
-
-    // Test if CORS issue is happening
-    try {
-      await fetch(profileImage, { method: 'HEAD' });
-      console.log('Profile image fetch successful.')
-    } catch (error) {
-      console.error('Error fetching profile image:', error);
-      profileImage = 'https://placekitten.com/64/64'; // Fallback to placeholder image if CORS issues
-    }
+    // Fallback to a placeholder image if pfp is null or empty
+    const profileImage = pfp || 'https://placekitten.com/64/64'
 
     let balanceDisplay: string
     let usdValueDisplay: string
