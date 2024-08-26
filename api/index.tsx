@@ -99,14 +99,14 @@ app.frame('/', (c) => {
 })
 
 app.frame('/check', async (c) => {
-  const address = c.frameData?.address
+  const fid = c.frameData?.fid
 
-  if (!address) {
+  if (!fid) {
     return c.res({
       image: (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundColor: '#FF8B19', padding: '20px', boxSizing: 'border-box' }}>
           <h1 style={{ fontSize: '48px', marginBottom: '20px', textAlign: 'center' }}>Error</h1>
-          <p style={{ fontSize: '36px', textAlign: 'center' }}>Unable to retrieve your wallet address. Please ensure your wallet is connected to Farcaster.</p>
+          <p style={{ fontSize: '36px', textAlign: 'center' }}>Unable to retrieve your Farcaster ID. Please ensure you're connected to Farcaster.</p>
         </div>
       ),
       intents: [
@@ -114,6 +114,9 @@ app.frame('/check', async (c) => {
       ]
     })
   }
+
+  // Convert FID to Ethereum address
+  const address = `0x${fid.toString(16).padStart(40, '0')}`
 
   try {
     console.log('Fetching balance and price for address:', address)
