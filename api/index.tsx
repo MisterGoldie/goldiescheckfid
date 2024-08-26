@@ -24,7 +24,8 @@ async function getGoldiesBalance(address: string): Promise<string> {
     const provider = new ethers.JsonRpcProvider(ALCHEMY_POLYGON_URL, POLYGON_CHAIN_ID)
     const contract = new ethers.Contract(GOLDIES_TOKEN_ADDRESS, ABI, provider)
     
-    const balance = await contract.balanceOf(address)
+    const latestBlock = await provider.getBlockNumber()
+    const balance = await contract.balanceOf(address, { blockTag: latestBlock })
     const decimals = await contract.decimals()
     
     const formattedBalance = ethers.formatUnits(balance, decimals)
@@ -99,14 +100,14 @@ app.frame('/', (c) => {
 })
 
 app.frame('/check', async (c) => {
-  const fid = c.frameData?.fid
+  const address = c.frameData?.address
 
-  if (!fid) {
+  if (!address) {
     return c.res({
       image: (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundColor: '#FF8B19', padding: '20px', boxSizing: 'border-box' }}>
           <h1 style={{ fontSize: '48px', marginBottom: '20px', textAlign: 'center' }}>Error</h1>
-          <p style={{ fontSize: '36px', textAlign: 'center' }}>Unable to retrieve your Farcaster ID. Please ensure you're connected to Farcaster.</p>
+          <p style={{ fontSize: '36px', textAlign: 'center' }}>Unable to retrieve your wallet address. Please ensure your wallet is connected to Farcaster.</p>
         </div>
       ),
       intents: [
@@ -114,9 +115,6 @@ app.frame('/check', async (c) => {
       ]
     })
   }
-
-  // Convert FID to Ethereum address
-  const address = `0x${fid.toString(16).padStart(40, '0')}`
 
   try {
     console.log('Fetching balance and price for address:', address)
