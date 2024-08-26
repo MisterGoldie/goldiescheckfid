@@ -22,18 +22,32 @@ async function getGoldiesBalance(address: string): Promise<string> {
   try {
     console.log('Fetching balance for address:', address)
     const provider = new ethers.JsonRpcProvider(ALCHEMY_POLYGON_URL, POLYGON_CHAIN_ID)
+    console.log('Provider created')
+
     const contract = new ethers.Contract(GOLDIES_TOKEN_ADDRESS, ABI, provider)
+    console.log('Contract instance created')
     
     const latestBlock = await provider.getBlockNumber()
+    console.log('Latest block number:', latestBlock)
+
+    console.log('Calling balanceOf...')
     const balance = await contract.balanceOf(address, { blockTag: latestBlock })
+    console.log('Raw balance:', balance.toString())
+
+    console.log('Fetching decimals...')
     const decimals = await contract.decimals()
+    console.log('Decimals:', decimals)
     
     const formattedBalance = ethers.formatUnits(balance, decimals)
-    console.log('Fetched balance:', formattedBalance)
+    console.log('Formatted balance:', formattedBalance)
     return formattedBalance
   } catch (error) {
-    console.error('Error in getGoldiesBalance:', error)
-    return 'Error: Unable to fetch balance'
+    console.error('Detailed error in getGoldiesBalance:', error)
+    if (error instanceof Error) {
+      console.error('Error message:', error.message)
+      console.error('Error stack:', error.stack)
+    }
+    return `Error: Unable to fetch balance - ${error instanceof Error ? error.message : 'Unknown error'}`
   }
 }
 
@@ -100,9 +114,12 @@ app.frame('/', (c) => {
 })
 
 app.frame('/check', async (c) => {
+  console.log('Full frameData:', c.frameData)
   const address = c.frameData?.address
+  console.log('Extracted address:', address)
 
   if (!address) {
+    console.log('No address found in frameData')
     return c.res({
       image: (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundColor: '#FF8B19', padding: '20px', boxSizing: 'border-box' }}>
