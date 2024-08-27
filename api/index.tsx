@@ -36,7 +36,7 @@ async function getGoldiesBalance(address: string): Promise<string> {
 
     const contract = new ethers.Contract(GOLDIES_TOKEN_ADDRESS, ABI, provider)
     console.log('Contract instance created')
-    
+
     const latestBlock = await provider.getBlockNumber()
     console.log('Latest block number:', latestBlock)
 
@@ -47,7 +47,7 @@ async function getGoldiesBalance(address: string): Promise<string> {
     console.log('Fetching decimals...')
     const decimals = await contract.decimals()
     console.log('Decimals:', decimals)
-    
+
     const formattedBalance = ethers.formatUnits(balance, decimals)
     console.log('Formatted balance:', formattedBalance)
     return formattedBalance
@@ -143,7 +143,7 @@ app.frame('/', (c) => {
 
 app.frame('/check', async (c) => {
   console.log('Full frameData:', JSON.stringify(c.frameData, null, 2))
-  
+
   const { fid } = c.frameData || {}
   const { displayName, pfpUrl } = c.var.interactor || {}
 
@@ -171,12 +171,21 @@ app.frame('/check', async (c) => {
     priceUsd = await getGoldiesUsdPrice()
 
     const balanceNumber = parseFloat(balance)
+    console.log('Parsed balance:', balanceNumber)
+
+    if (isNaN(balanceNumber)) {
+      throw new Error('Invalid balance received')
+    }
+
     balanceDisplay = balanceNumber === 0 
       ? "You don't have any $GOLDIES tokens yet!"
-      : `${balanceNumber.toLocaleString()} $GOLDIES`
-    
+      : `${balanceNumber.toLocaleString(undefined, {maximumFractionDigits: 2})} $GOLDIES`
+
     const usdValue = balanceNumber * priceUsd
     usdValueDisplay = `(~$${usdValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD)`
+    
+    console.log('Final balance display:', balanceDisplay)
+    console.log('Final USD value display:', usdValueDisplay)
   } catch (error) {
     console.error('Error in balance check:', error)
     balanceDisplay = "Error fetching balance"
