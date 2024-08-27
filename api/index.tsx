@@ -19,77 +19,45 @@ export const app = new Frog({
 
 const GOLDIES_TOKEN_ADDRESS = '0x3150E01c36ad3Af80bA16C1836eFCD967E96776e'
 const ALCHEMY_POLYGON_URL = 'https://polygon-mainnet.g.alchemy.com/v2/pe-VGWmYoLZ0RjSXwviVMNIDLGwgfkao'
-const ALCHEMY_MAINNET_URL = 'https://eth-mainnet.g.alchemy.com/v2/pe-VGWmYoLZ0RjSXwviVMNIDLGwgfkao'
 const POLYGON_CHAIN_ID = 137
 const NEYNAR_API_URL = 'https://api.neynar.com/v2/farcaster'
 const NEYNAR_API_KEY = 'NEYNAR_FROG_FM'
-const FALLBACK_PRICE = 0.00007442 // Fallback price if unable to fetch
 
 const ABI = [
   'function balanceOf(address account) view returns (uint256)',
   'function decimals() view returns (uint8)',
 ]
 
-async function resolveAddress(input: string): Promise<string> {
-  if (typeof input !== 'string') {
-    throw new Error('Input must be a string');
-  }
-
-  if (ethers.isAddress(input)) {
-    return input;
-  }
-
-  if (input.endsWith('.eth')) {
-    const provider = new ethers.JsonRpcProvider(ALCHEMY_MAINNET_URL);
-    try {
-      const address = await provider.resolveName(input);
-      if (address) {
-        return address;
-      }
-    } catch (error) {
-      console.error('Error resolving ENS name:', error);
-    }
-  }
-
-  throw new Error('Invalid address or ENS name');
-}
-
 async function getGoldiesBalance(address: string): Promise<string> {
   try {
     console.log('Fetching balance for address:', address)
     const provider = new ethers.JsonRpcProvider(ALCHEMY_POLYGON_URL, POLYGON_CHAIN_ID)
+    console.log('Provider created')
+
     const contract = new ethers.Contract(GOLDIES_TOKEN_ADDRESS, ABI, provider)
+    console.log('Contract instance created')
+    
+    const latestBlock = await provider.getBlockNumber()
+    console.log('Latest block number:', latestBlock)
 
-    const balance = await contract.balanceOf(address)
+    console.log('Calling balanceOf...')
+    const balance = await contract.balanceOf(address, { blockTag: latestBlock })
+    console.log('Raw balance:', balance.toString())
+
+    console.log('Fetching decimals...')
     const decimals = await contract.decimals()
-
+    console.log('Decimals:', decimals)
+    
     const formattedBalance = ethers.formatUnits(balance, decimals)
-    console.log('Fetched balance:', formattedBalance)
+    console.log('Formatted balance:', formattedBalance)
     return formattedBalance
   } catch (error) {
-    console.error('Error in getGoldiesBalance:', error)
-    return 'Error: Unable to fetch balance'
-  }
-}
-
-async function getGoldiesUsdPrice(): Promise<number> {
-  try {
-    console.log('Fetching $GOLDIES price from DEX Screener...')
-    const response = await fetch('https://api.dexscreener.com/latest/dex/pairs/polygon/0x19976577bb2fa3174b4ae4cf55e6795dde730135')
-    const data = await response.json()
-    console.log('DEX Screener API response:', JSON.stringify(data, null, 2))
-
-    if (data.pair && data.pair.priceUsd) {
-      const priceUsd = parseFloat(data.pair.priceUsd)
-      console.log('Fetched $GOLDIES price in USD:', priceUsd)
-      return priceUsd
-    } else {
-      console.error('Invalid price data received from DEX Screener')
-      return FALLBACK_PRICE
+    console.error('Detailed error in getGoldiesBalance:', error)
+    if (error instanceof Error) {
+      console.error('Error message:', error.message)
+      console.error('Error stack:', error.stack)
     }
-  } catch (error) {
-    console.error('Error in getGoldiesUsdPrice:', error)
-    return FALLBACK_PRICE
+    throw error
   }
 }
 
@@ -108,6 +76,30 @@ async function getConnectedAddress(fid: number): Promise<string | null> {
   } catch (error) {
     console.error('Error fetching connected address:', error);
     return null;
+  }
+}
+
+async function getGoldiesUsdPrice(): Promise<number> {
+  try {
+    console.log('Fetching $GOLDIES price from DEX Screener...')
+    const response = await fetch('https://api.dexscreener.com/latest/dex/pairs/polygon/0x19976577bb2fa3174b4ae4cf55e6795dde730135')
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json()
+    console.log('DEX Screener API response:', JSON.stringify(data, null, 2))
+
+    if (data.pair && data.pair.priceUsd) {
+      const priceUsd = parseFloat(data.pair.priceUsd)
+      console.log('Fetched $GOLDIES price in USD:', priceUsd)
+      return priceUsd
+    } else {
+      console.error('Invalid or missing price data in DEX Screener response:', data)
+      throw new Error('Invalid price data received from DEX Screener')
+    }
+  } catch (error) {
+    console.error('Error in getGoldiesUsdPrice:', error)
+    throw error
   }
 }
 
@@ -174,26 +166,17 @@ app.frame('/check', async (c) => {
     }
     console.log('Connected Ethereum address:', connectedAddress);
 
-    const resolvedAddress = await resolveAddress(connectedAddress);
-    console.log('Resolved address:', resolvedAddress);
-
     console.log('Fetching balance and price')
-    const balance = await getGoldiesBalance(resolvedAddress)
+    const balance = await getGoldiesBalance(connectedAddress)
     priceUsd = await getGoldiesUsdPrice()
 
-    if (balance === '0.0') {
-      balanceDisplay = "You don't have any $GOLDIES tokens on Polygon yet!"
-    } else if (!balance.startsWith('Error')) {
-      const balanceNumber = parseFloat(balance)
-      balanceDisplay = `${balanceNumber.toLocaleString()} $GOLDIES on Polygon`
-
-      const usdValue = balanceNumber * priceUsd
-      console.log('Calculated USD value:', usdValue)
-      usdValueDisplay = `(~$${usdValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD)`
-    } else {
-      balanceDisplay = balance
-      usdValueDisplay = "Unable to calculate USD value"
-    }
+    const balanceNumber = parseFloat(balance)
+    balanceDisplay = balanceNumber === 0 
+      ? "You don't have any $GOLDIES tokens yet!"
+      : `${balanceNumber.toLocaleString()} $GOLDIES`
+    
+    const usdValue = balanceNumber * priceUsd
+    usdValueDisplay = `(~$${usdValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD)`
   } catch (error) {
     console.error('Error in balance check:', error)
     balanceDisplay = "Error fetching balance"
@@ -216,16 +199,20 @@ app.frame('/check', async (c) => {
               {displayName ? displayName.charAt(0).toUpperCase() : 'U'}
             </div>
           )}
-          <p style={{ fontSize: '32px', textAlign: 'center' }}>{displayName || `FID: ${fid}`}</p>
+          <p style={{ fontSize: '32px', textAlign: 'center' }}>{displayName || `FID: ${fid}` || 'Unknown User'}</p>
         </div>
-        <p style={{ fontSize: '32px', textAlign: 'center' }}>{balanceDisplay}</p>
-        <p style={{ fontSize: '28px', textAlign: 'center', marginTop: '10px' }}>{usdValueDisplay}</p>
+        <p style={{ fontSize: '42px', textAlign: 'center' }}>{balanceDisplay}</p>
+        <p style={{ fontSize: '42px', textAlign: 'center' }}>{usdValueDisplay}</p>
+        {priceUsd > 0 && <p style={{ fontSize: '26px', marginTop: '10px', textAlign: 'center' }}>Price: ${priceUsd.toFixed(8)} USD</p>}
       </div>
     ),
     intents: [
-      <Button action="https://polygonscan.com/token/0x3150e01c36ad3af80ba16c1836efcd967e96776e">View on PolygonScan</Button>,
+      <Button action="/">Back</Button>,
+      <Button.Link href="https://polygonscan.com/token/0x3150e01c36ad3af80ba16c1836efcd967e96776e">Polygonscan</Button.Link>,
+      <Button action="/check">Refresh</Button>,
     ]
   })
 })
 
-export default handle(app)
+export const GET = handle(app)
+export const POST = handle(app)
