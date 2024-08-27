@@ -60,7 +60,8 @@ async function getGoldiesBalance(addressOrFid: string): Promise<string> {
       console.error('Error message:', error.message)
       console.error('Error stack:', error.stack)
     }
-    throw error
+    console.error('Unable to fetch balance. Returning 0 as fallback.')
+    return '0'
   }
 }
 
@@ -204,7 +205,7 @@ app.frame('/check', async (c) => {
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundColor: '#FF8B19', padding: '20px', boxSizing: 'border-box' }}>
           <h1 style={{ fontSize: '48px', marginBottom: '20px', textAlign: 'center' }}>Error</h1>
           <p style={{ fontSize: '36px', textAlign: 'center' }}>Unable to fetch balance or price. Please try again.</p>
-          <p style={{ fontSize: '24px', textAlign: 'center' }}>Error details: {errorMessage}</p>
+          <p style={{ fontSize: '24px', textAlign: 'center', wordWrap: 'break-word' }}>Error details: {errorMessage}</p>
         </div>
       ),
       intents: [
