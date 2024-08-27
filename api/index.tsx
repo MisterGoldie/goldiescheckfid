@@ -31,32 +31,53 @@ const ABI = [
 
 async function getGoldiesBalance(address: string): Promise<string> {
   try {
-    console.log('Fetching balance for address:', address)
+    console.log('Starting getGoldiesBalance for address:', address)
+    
+    console.log('Creating provider...')
     const provider = new ethers.JsonRpcProvider(ALCHEMY_POLYGON_URL, POLYGON_CHAIN_ID)
-    console.log('Provider created')
+    console.log('Provider created successfully')
 
+    console.log('Creating contract instance...')
     const contract = new ethers.Contract(GOLDIES_TOKEN_ADDRESS, ABI, provider)
-    console.log('Contract instance created')
+    console.log('Contract instance created successfully')
 
+    console.log('Fetching latest block number...')
     const latestBlock = await provider.getBlockNumber()
     console.log('Latest block number:', latestBlock)
 
     console.log('Calling balanceOf...')
-    const balance = await contract.balanceOf(address, { blockTag: latestBlock })
-    console.log('Raw balance:', balance.toString())
+    let balance
+    try {
+      balance = await contract.balanceOf(address, { blockTag: latestBlock })
+      console.log('Raw balance:', balance.toString())
+    } catch (error) {
+      console.error('Error in balanceOf call:', error)
+      throw new Error(`Failed to fetch balance: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
 
     console.log('Fetching decimals...')
-    const decimals = await contract.decimals()
-    console.log('Decimals:', decimals)
+    let decimals
+    try {
+      decimals = await contract.decimals()
+      console.log('Decimals:', decimals)
+    } catch (error) {
+      console.error('Error in decimals call:', error)
+      throw new Error(`Failed to fetch decimals: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
 
+    console.log('Formatting balance...')
     const formattedBalance = ethers.formatUnits(balance, decimals)
     console.log('Formatted balance:', formattedBalance)
+    
     return formattedBalance
   } catch (error) {
     console.error('Detailed error in getGoldiesBalance:', error)
     if (error instanceof Error) {
+      console.error('Error name:', error.name)
       console.error('Error message:', error.message)
       console.error('Error stack:', error.stack)
+    } else {
+      console.error('Unknown error type:', error)
     }
     throw error
   }
@@ -174,6 +195,7 @@ app.frame('/check', async (c) => {
   let balanceDisplay = "Unable to fetch balance"
   let usdValueDisplay = ""
   let priceUsd = 0
+  let errorDetails = ""
 
   try {
     if (!fid) {
@@ -201,6 +223,7 @@ app.frame('/check', async (c) => {
     console.error('Error in balance check:', error)
     balanceDisplay = "Error fetching balance"
     usdValueDisplay = "Unable to calculate USD value"
+    errorDetails = error instanceof Error ? `${error.name}: ${error.message}` : 'Unknown error'
   }
 
   return c.res({
@@ -224,6 +247,7 @@ app.frame('/check', async (c) => {
         <p style={{ fontSize: '42px', textAlign: 'center' }}>{balanceDisplay}</p>
         <p style={{ fontSize: '42px', textAlign: 'center' }}>{usdValueDisplay}</p>
         {priceUsd > 0 && <p style={{ fontSize: '26px', marginTop: '10px', textAlign: 'center' }}>Price: ${priceUsd.toFixed(8)} USD</p>}
+        {errorDetails && <p style={{ fontSize: '18px', color: 'red', marginTop: '10px', textAlign: 'center' }}>Error: {errorDetails}</p>}
       </div>
     ),
     intents: [
