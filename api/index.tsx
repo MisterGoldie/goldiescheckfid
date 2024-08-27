@@ -2,12 +2,20 @@ import { Button, Frog } from 'frog'
 import { handle } from 'frog/vercel'
 import { ethers } from 'ethers'
 import fetch from 'node-fetch'
+import { neynar } from 'frog/middlewares'
+import { pinata } from 'frog/hubs'
 
 export const app = new Frog({
   basePath: '/api',
   imageOptions: { width: 1200, height: 630 },
   title: '$GOLDIES Token Tracker on Polygon',
-})
+  hub: pinata(),
+}).use(
+  neynar({
+    apiKey: 'NEYNAR_FROG_FM',
+    features: ['interactor', 'cast'],
+  })
+)
 
 const GOLDIES_TOKEN_ADDRESS = '0x3150E01c36ad3Af80bA16C1836eFCD967E96776e'
 const ALCHEMY_POLYGON_URL = 'https://polygon-mainnet.g.alchemy.com/v2/pe-VGWmYoLZ0RjSXwviVMNIDLGwgfkao'
@@ -52,7 +60,8 @@ async function getGoldiesBalance(addressOrFid: string): Promise<string> {
       console.error('Error message:', error.message)
       console.error('Error stack:', error.stack)
     }
-    throw error
+    console.error('Unable to fetch balance. Returning 0 as fallback.')
+    return '0'
   }
 }
 
@@ -121,10 +130,15 @@ app.frame('/', (c) => {
 app.frame('/check', async (c) => {
   console.log('Full frameData:', JSON.stringify(c.frameData, null, 2))
   
-  const address = c.frameData?.address || (c.frameData?.fid ? `fid:${c.frameData.fid}` : undefined)
-  console.log('Retrieved address or identifier:', address)
+  const { fid, address } = c.frameData || {}
+  const { displayName, pfpUrl } = c.var.interactor || {}
 
-  if (!address) {
+  console.log('FID:', fid)
+  console.log('Address:', address)
+  console.log('Display Name:', displayName)
+  console.log('Profile Picture URL:', pfpUrl)
+
+  if (!fid && !address) {
     console.log('No address or FID found for the user.')
     return c.res({
       image: (
@@ -140,14 +154,14 @@ app.frame('/check', async (c) => {
   }
 
   try {
-    console.log('Fetching balance and price for address:', address)
-    const balance = await getGoldiesBalance(address)
+    console.log('Fetching balance and price')
+    const balance = await getGoldiesBalance(address || `fid:${fid}`)
     const priceUsd = await getGoldiesUsdPrice()
 
     const balanceNumber = parseFloat(balance)
     const balanceDisplay = balanceNumber === 0 
-      ? "You don't have any $GOLDIES tokens on Polygon yet!"
-      : `${balanceNumber.toLocaleString()} $GOLDIES on Polygon`
+      ? "You don't have any $GOLDIES tokens yet!"
+      : `${balanceNumber.toLocaleString()} $GOLDIES`
     
     const usdValue = balanceNumber * priceUsd
     const usdValueDisplay = `(~$${usdValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD)`
@@ -156,10 +170,22 @@ app.frame('/check', async (c) => {
       image: (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundColor: '#FF8B19', padding: '20px', boxSizing: 'border-box' }}>
           <h1 style={{ fontSize: '60px', marginBottom: '20px', textAlign: 'center' }}>Your $GOLDIES Balance</h1>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
+            {pfpUrl ? (
+              <img 
+                src={pfpUrl} 
+                alt="Profile" 
+                style={{ width: '64px', height: '64px', borderRadius: '50%', marginRight: '10px' }}
+              />
+            ) : (
+              <div style={{ width: '64px', height: '64px', borderRadius: '50%', marginRight: '10px', backgroundColor: '#ccc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {displayName ? displayName.charAt(0).toUpperCase() : 'U'}
+              </div>
+            )}
+            <p style={{ fontSize: '32px', textAlign: 'center' }}>{displayName || `FID: ${fid}`}</p>
+          </div>
           <p style={{ fontSize: '42px', textAlign: 'center' }}>{balanceDisplay}</p>
           <p style={{ fontSize: '42px', textAlign: 'center' }}>{usdValueDisplay}</p>
-          <p style={{ fontSize: '32px', marginTop: '20px', textAlign: 'center' }}>Address: {address}</p>
-          <p style={{ fontSize: '32px', marginTop: '10px', textAlign: 'center' }}>Network: Polygon (Chain ID: {POLYGON_CHAIN_ID})</p>
           <p style={{ fontSize: '26px', marginTop: '10px', textAlign: 'center' }}>Price: ${priceUsd.toFixed(8)} USD</p>
         </div>
       ),
@@ -177,7 +203,7 @@ app.frame('/check', async (c) => {
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundColor: '#FF8B19', padding: '20px', boxSizing: 'border-box' }}>
           <h1 style={{ fontSize: '48px', marginBottom: '20px', textAlign: 'center' }}>Error</h1>
           <p style={{ fontSize: '36px', textAlign: 'center' }}>Unable to fetch balance or price. Please try again.</p>
-          <p style={{ fontSize: '24px', textAlign: 'center' }}>Error details: {errorMessage}</p>
+          <p style={{ fontSize: '24px', textAlign: 'center', wordWrap: 'break-word' }}>Error details: {errorMessage}</p>
         </div>
       ),
       intents: [
@@ -190,5 +216,3 @@ app.frame('/check', async (c) => {
 
 export const GET = handle(app)
 export const POST = handle(app)
-
-
