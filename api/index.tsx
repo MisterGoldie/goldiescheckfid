@@ -64,13 +64,19 @@ async function getGoldiesBalance(address: string): Promise<string> {
 }
 
 async function getConnectedAddress(fid: number): Promise<string | null> {
+  console.log('Attempting to fetch connected address for FID:', fid);
   try {
-    const response = await fetch(`${NEYNAR_API_URL}/user?fid=${fid}`, {
+    const url = `${NEYNAR_API_URL}/user?fid=${fid}`;
+    console.log('Neynar API URL:', url);
+    const response = await fetch(url, {
       headers: {
         'api_key': NEYNAR_API_KEY
       }
     });
     if (!response.ok) {
+      console.error('Neynar API response not OK. Status:', response.status);
+      const responseText = await response.text();
+      console.error('Response body:', responseText);
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const data = await response.json();
