@@ -81,30 +81,25 @@ async function getConnectedAddress(fid: number): Promise<string | null> {
 
 async function getGoldiesUsdPrice(): Promise<number> {
   try {
-    console.log('Fetching $GOLDIES price from Uniswap...')
-    const response = await fetch('https://api.uniswap.org/v1/quote', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        tokenIn: '0x3150E01c36ad3Af80bA16C1836eFCD967E96776e',
-        tokenOut: '0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619',
-        chainId: 137,
-      }),
-    });
-    
+    console.log('Fetching $GOLDIES price from DEX Screener...')
+    const response = await fetch('https://api.dexscreener.com/latest/dex/pairs/polygon/0x19976577bb2fa3174b4ae4cf55e6795dde730135')
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
+    const data = await response.json()
+    console.log('DEX Screener API response:', JSON.stringify(data, null, 2))
 
-    const data = await response.json();
-    const priceUsd = parseFloat(data.priceUsd);
-    console.log('Fetched $GOLDIES price in USD:', priceUsd);
-    return priceUsd;
+    if (data.pair && data.pair.priceUsd) {
+      const priceUsd = parseFloat(data.pair.priceUsd)
+      console.log('Fetched $GOLDIES price in USD:', priceUsd)
+      return priceUsd
+    } else {
+      console.error('Invalid or missing price data in DEX Screener response:', data)
+      throw new Error('Invalid price data received from DEX Screener')
+    }
   } catch (error) {
-    console.error('Error in getGoldiesUsdPrice:', error);
-    throw error;
+    console.error('Error in getGoldiesUsdPrice:', error)
+    throw error
   }
 }
 
@@ -208,13 +203,16 @@ app.frame('/check', async (c) => {
         </div>
         <p style={{ fontSize: '42px', textAlign: 'center' }}>{balanceDisplay}</p>
         <p style={{ fontSize: '42px', textAlign: 'center' }}>{usdValueDisplay}</p>
-        {priceUsd > 0 && <p style={{ fontSize: '26px', marginTop: '10px', textAlign: 'center' }}>Price: ${priceUsd.toFixed(2)} per $GOLDIES</p>}
-        <a href="https://polygonscan.com/token/0x3150e01c36ad3af80ba16c1836efcd967e96776e" target="_blank" rel="noopener noreferrer">
-          <Button>Polygonscan</Button>
-        </a>
+        {priceUsd > 0 && <p style={{ fontSize: '26px', marginTop: '10px', textAlign: 'center' }}>Price: ${priceUsd.toFixed(8)} USD</p>}
       </div>
     ),
+    intents: [
+      <Button action="/">Back</Button>,
+      <Button.Link href="https://polygonscan.com/token/0x3150e01c36ad3af80ba16c1836efcd967e96776e">Polygonscan</Button.Link>,
+      <Button action="/check">Refresh</Button>,
+    ]
   })
 })
 
-export default handle(app)
+export const GET = handle(app)
+export const POST = handle(app)
