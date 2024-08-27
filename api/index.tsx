@@ -22,6 +22,7 @@ const ALCHEMY_POLYGON_URL = 'https://polygon-mainnet.g.alchemy.com/v2/pe-VGWmYoL
 const POLYGON_CHAIN_ID = 137
 const NEYNAR_API_URL = 'https://api.neynar.com/v2/farcaster'
 const NEYNAR_API_KEY = 'NEYNAR_FROG_FM'
+const UNISWAP_API_URL = 'https://api.uniswap.org/v1/graphql'
 
 const ABI = [
   'function balanceOf(address account) view returns (uint256)',
@@ -36,7 +37,7 @@ async function getGoldiesBalance(address: string): Promise<string> {
 
     const contract = new ethers.Contract(GOLDIES_TOKEN_ADDRESS, ABI, provider)
     console.log('Contract instance created')
-    
+
     const latestBlock = await provider.getBlockNumber()
     console.log('Latest block number:', latestBlock)
 
@@ -47,7 +48,7 @@ async function getGoldiesBalance(address: string): Promise<string> {
     console.log('Fetching decimals...')
     const decimals = await contract.decimals()
     console.log('Decimals:', decimals)
-    
+
     const formattedBalance = ethers.formatUnits(balance, decimals)
     console.log('Formatted balance:', formattedBalance)
     return formattedBalance
@@ -81,21 +82,40 @@ async function getConnectedAddress(fid: number): Promise<string | null> {
 
 async function getGoldiesUsdPrice(): Promise<number> {
   try {
-    console.log('Fetching $GOLDIES price from DEX Screener...')
-    const response = await fetch('https://api.dexscreener.com/latest/dex/pairs/polygon/0x19976577bb2fa3174b4ae4cf55e6795dde730135')
+    console.log('Fetching $GOLDIES price from Uniswap...')
+    const response = await fetch(UNISWAP_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Origin': 'https://app.uniswap.org'
+      },
+      body: JSON.stringify({
+        query: `
+          query {
+            token(id: "${GOLDIES_TOKEN_ADDRESS.toLowerCase()}", chain: POLYGON) {
+              market(currency: USD) {
+                price
+              }
+            }
+          }
+        `
+      })
+    })
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    const data = await response.json()
-    console.log('DEX Screener API response:', JSON.stringify(data, null, 2))
 
-    if (data.pair && data.pair.priceUsd) {
-      const priceUsd = parseFloat(data.pair.priceUsd)
+    const data = await response.json()
+    console.log('Uniswap API response:', JSON.stringify(data, null, 2))
+
+    if (data.data && data.data.token && data.data.token.market && data.data.token.market.price) {
+      const priceUsd = parseFloat(data.data.token.market.price)
       console.log('Fetched $GOLDIES price in USD:', priceUsd)
       return priceUsd
     } else {
-      console.error('Invalid or missing price data in DEX Screener response:', data)
-      throw new Error('Invalid price data received from DEX Screener')
+      console.error('Invalid or missing price data in Uniswap response:', data)
+      throw new Error('Invalid price data received from Uniswap')
     }
   } catch (error) {
     console.error('Error in getGoldiesUsdPrice:', error)
@@ -143,7 +163,7 @@ app.frame('/', (c) => {
 
 app.frame('/check', async (c) => {
   console.log('Full frameData:', JSON.stringify(c.frameData, null, 2))
-  
+
   const { fid } = c.frameData || {}
   const { displayName, pfpUrl } = c.var.interactor || {}
 
@@ -174,7 +194,7 @@ app.frame('/check', async (c) => {
     balanceDisplay = balanceNumber === 0 
       ? "You don't have any $GOLDIES tokens yet!"
       : `${balanceNumber.toLocaleString()} $GOLDIES`
-    
+
     const usdValue = balanceNumber * priceUsd
     usdValueDisplay = `(~$${usdValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD)`
   } catch (error) {
