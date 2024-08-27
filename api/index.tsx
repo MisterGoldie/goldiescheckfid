@@ -84,19 +84,32 @@ async function getGoldiesBalance(address: string): Promise<string> {
 }
 
 async function getConnectedAddress(fid: number): Promise<string | null> {
+  console.log('Attempting to fetch connected address for FID:', fid);
   try {
-    const response = await fetch(`${NEYNAR_API_URL}/user?fid=${fid}`, {
+    const url = `${NEYNAR_API_URL}/user?fid=${fid}`;
+    console.log('Neynar API URL:', url);
+    const response = await fetch(url, {
       headers: {
         'api_key': NEYNAR_API_KEY
       }
     });
     if (!response.ok) {
+      console.error('Neynar API response not OK. Status:', response.status);
+      const responseText = await response.text();
+      console.error('Response body:', responseText);
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const data = await response.json();
-    return data.result.user.custody_address || null;
+    console.log('Neynar API response data:', JSON.stringify(data, null, 2));
+    
+    if (!data.result || !data.result.user || !data.result.user.custody_address) {
+      console.error('Unexpected response structure from Neynar API');
+      return null;
+    }
+    
+    return data.result.user.custody_address;
   } catch (error) {
-    console.error('Error fetching connected address:', error);
+    console.error('Error in getConnectedAddress:', error);
     return null;
   }
 }
@@ -183,14 +196,14 @@ app.frame('/', (c) => {
 })
 
 app.frame('/check', async (c) => {
-  console.log('Full frameData:', JSON.stringify(c.frameData, null, 2))
+  console.log('Full frameData:', JSON.stringify(c.frameData, null, 2));
 
-  const { fid } = c.frameData || {}
-  const { displayName, pfpUrl } = c.var.interactor || {}
+  const { fid } = c.frameData || {};
+  const { displayName, pfpUrl } = c.var.interactor || {};
 
-  console.log('FID:', fid)
-  console.log('Display Name:', displayName)
-  console.log('Profile Picture URL:', pfpUrl)
+  console.log('FID:', fid);
+  console.log('Display Name:', displayName);
+  console.log('Profile Picture URL:', pfpUrl);
 
   let balanceDisplay = "Unable to fetch balance"
   let usdValueDisplay = ""
@@ -199,11 +212,14 @@ app.frame('/check', async (c) => {
 
   try {
     if (!fid) {
+      console.error('No FID found in frameData');
       throw new Error('No FID found for the user.')
     }
 
+    console.log('Attempting to get connected address for FID:', fid);
     const connectedAddress = await getConnectedAddress(fid);
     if (!connectedAddress) {
+      console.error('Failed to fetch connected Ethereum address for FID:', fid);
       throw new Error('Unable to fetch connected Ethereum address');
     }
     console.log('Connected Ethereum address:', connectedAddress);
