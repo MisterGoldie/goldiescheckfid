@@ -151,22 +151,15 @@ app.frame('/check', async (c) => {
   console.log('Display Name:', displayName)
   console.log('Profile Picture URL:', pfpUrl)
 
-  if (!fid) {
-    console.log('No FID found for the user.')
-    return c.res({
-      image: (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundColor: '#FF8B19', padding: '20px', boxSizing: 'border-box' }}>
-          <h1 style={{ fontSize: '48px', marginBottom: '20px', textAlign: 'center' }}>Error</h1>
-          <p style={{ fontSize: '36px', textAlign: 'center' }}>Unable to retrieve your Farcaster ID. Please ensure you have a valid Farcaster profile.</p>
-        </div>
-      ),
-      intents: [
-        <Button action="/">Back</Button>
-      ]
-    })
-  }
+  let balanceDisplay = "Unable to fetch balance"
+  let usdValueDisplay = ""
+  let priceUsd = 0
 
   try {
+    if (!fid) {
+      throw new Error('No FID found for the user.')
+    }
+
     const connectedAddress = await getConnectedAddress(fid);
     if (!connectedAddress) {
       throw new Error('Unable to fetch connected Ethereum address');
@@ -175,62 +168,50 @@ app.frame('/check', async (c) => {
 
     console.log('Fetching balance and price')
     const balance = await getGoldiesBalance(connectedAddress)
-    const priceUsd = await getGoldiesUsdPrice()
+    priceUsd = await getGoldiesUsdPrice()
 
     const balanceNumber = parseFloat(balance)
-    const balanceDisplay = balanceNumber === 0 
+    balanceDisplay = balanceNumber === 0 
       ? "You don't have any $GOLDIES tokens yet!"
       : `${balanceNumber.toLocaleString()} $GOLDIES`
     
     const usdValue = balanceNumber * priceUsd
-    const usdValueDisplay = `(~$${usdValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD)`
-
-    return c.res({
-      image: (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundColor: '#FF8B19', padding: '20px', boxSizing: 'border-box' }}>
-          <h1 style={{ fontSize: '60px', marginBottom: '20px', textAlign: 'center' }}>Your $GOLDIES Balance</h1>
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
-            {pfpUrl ? (
-              <img 
-                src={pfpUrl} 
-                alt="Profile" 
-                style={{ width: '64px', height: '64px', borderRadius: '50%', marginRight: '10px' }}
-              />
-            ) : (
-              <div style={{ width: '64px', height: '64px', borderRadius: '50%', marginRight: '10px', backgroundColor: '#ccc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {displayName ? displayName.charAt(0).toUpperCase() : 'U'}
-              </div>
-            )}
-            <p style={{ fontSize: '32px', textAlign: 'center' }}>{displayName || `FID: ${fid}`}</p>
-          </div>
-          <p style={{ fontSize: '42px', textAlign: 'center' }}>{balanceDisplay}</p>
-          <p style={{ fontSize: '42px', textAlign: 'center' }}>{usdValueDisplay}</p>
-          <p style={{ fontSize: '26px', marginTop: '10px', textAlign: 'center' }}>Price: ${priceUsd.toFixed(8)} USD</p>
-        </div>
-      ),
-      intents: [
-        <Button action="/">Back</Button>,
-        <Button.Link href="https://polygonscan.com/token/0x3150e01c36ad3af80ba16c1836efcd967e96776e">Polygonscan</Button.Link>,
-        <Button action="/check">Refresh</Button>,
-      ]
-    })
+    usdValueDisplay = `(~$${usdValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD)`
   } catch (error) {
     console.error('Error in balance check:', error)
-    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred'
-    return c.res({
-      image: (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundColor: '#FF8B19', padding: '20px', boxSizing: 'border-box' }}>
-          <h1 style={{ fontSize: '48px', marginBottom: '20px', textAlign: 'center' }}>Error</h1>
-          <p style={{ fontSize: '36px', textAlign: 'center' }}>Unable to fetch balance or price. Please try again.</p>
-          <p style={{ fontSize: '24px', textAlign: 'center', wordWrap: 'break-word' }}>Error details: {errorMessage}</p>
-        </div>
-      ),
-      intents: [
-        <Button action="/">Back</Button>,
-        <Button action="/check">Retry</Button>
-      ]
-    })
+    balanceDisplay = "Error fetching balance"
+    usdValueDisplay = "Unable to calculate USD value"
   }
+
+  return c.res({
+    image: (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundColor: '#FF8B19', padding: '20px', boxSizing: 'border-box' }}>
+        <h1 style={{ fontSize: '60px', marginBottom: '20px', textAlign: 'center' }}>Your $GOLDIES Balance</h1>
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
+          {pfpUrl ? (
+            <img 
+              src={pfpUrl} 
+              alt="Profile" 
+              style={{ width: '64px', height: '64px', borderRadius: '50%', marginRight: '10px' }}
+            />
+          ) : (
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', marginRight: '10px', backgroundColor: '#ccc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {displayName ? displayName.charAt(0).toUpperCase() : 'U'}
+            </div>
+          )}
+          <p style={{ fontSize: '32px', textAlign: 'center' }}>{displayName || `FID: ${fid}` || 'Unknown User'}</p>
+        </div>
+        <p style={{ fontSize: '42px', textAlign: 'center' }}>{balanceDisplay}</p>
+        <p style={{ fontSize: '42px', textAlign: 'center' }}>{usdValueDisplay}</p>
+        {priceUsd > 0 && <p style={{ fontSize: '26px', marginTop: '10px', textAlign: 'center' }}>Price: ${priceUsd.toFixed(8)} USD</p>}
+      </div>
+    ),
+    intents: [
+      <Button action="/">Back</Button>,
+      <Button.Link href="https://polygonscan.com/token/0x3150e01c36ad3af80ba16c1836efcd967e96776e">Polygonscan</Button.Link>,
+      <Button action="/check">Refresh</Button>,
+    ]
+  })
 })
 
 export const GET = handle(app)
