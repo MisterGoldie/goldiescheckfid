@@ -1,6 +1,8 @@
 import { Button, Frog } from 'frog'
 import { handle } from 'frog/vercel'
+import { ethers } from 'ethers'
 import fetch from 'node-fetch'
+import { neynar } from 'frog/middlewares'
 import { pinata } from 'frog/hubs'
 
 export const app = new Frog({
@@ -8,77 +10,107 @@ export const app = new Frog({
   imageOptions: { width: 1200, height: 630 },
   title: '$GOLDIES Token Tracker on Polygon',
   hub: pinata(),
-})
+}).use(
+  neynar({
+    apiKey: 'NEYNAR_FROG_FM',
+    features: ['interactor', 'cast'],
+  })
+)
 
-const AIRSTACK_API_URL = 'https://api.airstack.xyz/gql';
-const AIRSTACK_API_KEY = '103ba30da492d4a7e89e7026a6d3a234e'; // Your Airstack API key
-const GOLDIES_TOKEN_ADDRESS = '0x3150E01c36ad3Af80bA16C1836eFCD967E96776e';
-const UNISWAP_API_URL = 'https://api.uniswap.org/v1/graphql';
+const GOLDIES_TOKEN_ADDRESS = '0x3150E01c36ad3Af80bA16C1836eFCD967E96776e'
+const ALCHEMY_POLYGON_URL = 'https://polygon-mainnet.g.alchemy.com/v2/pe-VGWmYoLZ0RjSXwviVMNIDLGwgfkao'
+const POLYGON_CHAIN_ID = 137
+const NEYNAR_API_URL = 'https://api.neynar.com/v2/farcaster'
+const NEYNAR_API_KEY = 'NEYNAR_FROG_FM'
+const UNISWAP_API_URL = 'https://api.uniswap.org/v1/graphql'
+
+const ABI = [
+  'function balanceOf(address account) view returns (uint256)',
+  'function decimals() view returns (uint8)',
+]
 
 async function getGoldiesBalance(address: string): Promise<string> {
-  console.log('Fetching $GOLDIES balance for address:', address);
   try {
-    const response = await fetch(AIRSTACK_API_URL, {
-      method: 'POST',
+    console.log('Starting getGoldiesBalance for address:', address)
+    
+    console.log('Creating provider...')
+    const provider = new ethers.JsonRpcProvider(ALCHEMY_POLYGON_URL, POLYGON_CHAIN_ID)
+    console.log('Provider created successfully')
+
+    console.log('Creating contract instance...')
+    const contract = new ethers.Contract(GOLDIES_TOKEN_ADDRESS, ABI, provider)
+    console.log('Contract instance created successfully')
+
+    console.log('Fetching latest block number...')
+    const latestBlock = await provider.getBlockNumber()
+    console.log('Latest block number:', latestBlock)
+
+    console.log('Calling balanceOf...')
+    let balance
+    try {
+      balance = await contract.balanceOf(address, { blockTag: latestBlock })
+      console.log('Raw balance:', balance.toString())
+    } catch (error) {
+      console.error('Error in balanceOf call:', error)
+      throw new Error(`Failed to fetch balance: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+
+    console.log('Fetching decimals...')
+    let decimals
+    try {
+      decimals = await contract.decimals()
+      console.log('Decimals:', decimals)
+    } catch (error) {
+      console.error('Error in decimals call:', error)
+      throw new Error(`Failed to fetch decimals: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+
+    console.log('Formatting balance...')
+    const formattedBalance = ethers.formatUnits(balance, decimals)
+    console.log('Formatted balance:', formattedBalance)
+    
+    return formattedBalance
+  } catch (error) {
+    console.error('Detailed error in getGoldiesBalance:', error)
+    if (error instanceof Error) {
+      console.error('Error name:', error.name)
+      console.error('Error message:', error.message)
+      console.error('Error stack:', error.stack)
+    } else {
+      console.error('Unknown error type:', error)
+    }
+    throw error
+  }
+}
+
+async function getConnectedAddress(fid: number): Promise<string | null> {
+  console.log('Attempting to fetch connected address for FID:', fid);
+  try {
+    const url = `${NEYNAR_API_URL}/user?fid=${fid}`;
+    console.log('Neynar API URL:', url);
+    const response = await fetch(url, {
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': AIRSTACK_API_KEY
-      },
-      body: JSON.stringify({
-        query: `
-          query GetTokenBalance($address: Identity!, $tokenAddress: Address!, $blockchain: TokenBlockchain!) {
-            TokenBalances(
-              input: {
-                filter: {
-                  owner: {_eq: $address},
-                  tokenAddress: {_eq: $tokenAddress}
-                },
-                blockchain: $blockchain
-              }
-            ) {
-              TokenBalance {
-                amount
-                formattedAmount
-              }
-            }
-          }
-        `,
-        variables: {
-          address: address,
-          tokenAddress: GOLDIES_TOKEN_ADDRESS,
-          blockchain: "polygon"
-        }
-      })
+        'api_key': NEYNAR_API_KEY
+      }
     });
-
-    console.log('Airstack API response status:', response.status);
-    console.log('Airstack API response headers:', JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2));
-
     if (!response.ok) {
+      console.error('Neynar API response not OK. Status:', response.status);
       const responseText = await response.text();
-      console.error('Airstack API error response:', responseText);
+      console.error('Response body:', responseText);
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-
     const data = await response.json();
-    console.log('Airstack API response data:', JSON.stringify(data, null, 2));
-
-    if (data.data && data.data.TokenBalances && data.data.TokenBalances.TokenBalance && data.data.TokenBalances.TokenBalance[0]) {
-      const balance = data.data.TokenBalances.TokenBalance[0].formattedAmount;
-      console.log('Fetched $GOLDIES balance:', balance);
-      return balance;
+    console.log('Neynar API response data:', JSON.stringify(data, null, 2));
+    
+    if (!data.result || !data.result.user || !data.result.user.custody_address) {
+      console.error('Unexpected response structure from Neynar API');
+      return null;
     }
-
-    console.error('No balance data found in Airstack response');
-    return "0";
+    
+    return data.result.user.custody_address;
   } catch (error) {
-    console.error('Detailed error in getGoldiesBalance:', error);
-    if (error instanceof Error) {
-      console.error('Error name:', error.name);
-      console.error('Error message:', error.message);
-      console.error('Error stack:', error.stack);
-    }
-    throw error;
+    console.error('Error in getConnectedAddress:', error);
+    return null;
   }
 }
 
@@ -104,12 +136,7 @@ async function getGoldiesUsdPrice(): Promise<number> {
       })
     })
 
-    console.log('Uniswap API response status:', response.status);
-    console.log('Uniswap API response headers:', JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2));
-
     if (!response.ok) {
-      const responseText = await response.text();
-      console.error('Uniswap API error response:', responseText);
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
@@ -125,72 +152,8 @@ async function getGoldiesUsdPrice(): Promise<number> {
       throw new Error('Invalid price data received from Uniswap')
     }
   } catch (error) {
-    console.error('Detailed error in getGoldiesUsdPrice:', error);
-    if (error instanceof Error) {
-      console.error('Error name:', error.name);
-      console.error('Error message:', error.message);
-      console.error('Error stack:', error.stack);
-    }
+    console.error('Error in getGoldiesUsdPrice:', error)
     throw error
-  }
-}
-
-async function getConnectedAddress(fid: number): Promise<string | null> {
-  console.log('Attempting to fetch connected address for FID:', fid);
-  try {
-    const response = await fetch(AIRSTACK_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': AIRSTACK_API_KEY
-      },
-      body: JSON.stringify({
-        query: `
-          query GetFarcasterUser($fid: String!) {
-            Socials(
-              input: {filter: {dappName: {_eq: farcaster}, userId: {_eq: $fid}}, blockchain: ethereum}
-            ) {
-              Social {
-                userAssociatedAddresses
-              }
-            }
-          }
-        `,
-        variables: {
-          fid: fid.toString()
-        }
-      })
-    });
-
-    console.log('Airstack API response status:', response.status);
-    console.log('Airstack API response headers:', JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2));
-
-    if (!response.ok) {
-      const responseText = await response.text();
-      console.error('Airstack API error response:', responseText);
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log('Airstack API response data:', JSON.stringify(data, null, 2));
-
-    if (data.data && data.data.Socials && data.data.Socials.Social && data.data.Socials.Social[0]) {
-      const addresses = data.data.Socials.Social[0].userAssociatedAddresses;
-      if (addresses && addresses.length > 0) {
-        return addresses[0]; // Return the first associated address
-      }
-    }
-
-    console.error('No associated Ethereum address found in Airstack response');
-    return null;
-  } catch (error) {
-    console.error('Detailed error in getConnectedAddress:', error);
-    if (error instanceof Error) {
-      console.error('Error name:', error.name);
-      console.error('Error message:', error.message);
-      console.error('Error stack:', error.stack);
-    }
-    return null;
   }
 }
 
@@ -236,8 +199,11 @@ app.frame('/check', async (c) => {
   console.log('Full frameData:', JSON.stringify(c.frameData, null, 2));
 
   const { fid } = c.frameData || {};
+  const { displayName, pfpUrl } = c.var.interactor || {};
 
   console.log('FID:', fid);
+  console.log('Display Name:', displayName);
+  console.log('Profile Picture URL:', pfpUrl);
 
   let balanceDisplay = "Unable to fetch balance"
   let usdValueDisplay = ""
@@ -270,12 +236,7 @@ app.frame('/check', async (c) => {
     const usdValue = balanceNumber * priceUsd
     usdValueDisplay = `(~$${usdValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD)`
   } catch (error) {
-    console.error('Detailed error in balance check:', error);
-    if (error instanceof Error) {
-      console.error('Error name:', error.name);
-      console.error('Error message:', error.message);
-      console.error('Error stack:', error.stack);
-    }
+    console.error('Error in balance check:', error)
     balanceDisplay = "Error fetching balance"
     usdValueDisplay = "Unable to calculate USD value"
     errorDetails = error instanceof Error ? `${error.name}: ${error.message}` : 'Unknown error'
@@ -286,10 +247,18 @@ app.frame('/check', async (c) => {
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundColor: '#FF8B19', padding: '20px', boxSizing: 'border-box' }}>
         <h1 style={{ fontSize: '60px', marginBottom: '20px', textAlign: 'center' }}>Your $GOLDIES Balance</h1>
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
-          <div style={{ width: '64px', height: '64px', borderRadius: '50%', marginRight: '10px', backgroundColor: '#ccc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ fontSize: '24px', color: '#666' }}>{fid ? fid.toString()[0].toUpperCase() : '?'}</span>
-          </div>
-          <p style={{ fontSize: '32px', textAlign: 'center' }}>FID: {fid}</p>
+          {pfpUrl ? (
+            <img 
+              src={pfpUrl} 
+              alt="Profile" 
+              style={{ width: '64px', height: '64px', borderRadius: '50%', marginRight: '10px' }}
+            />
+          ) : (
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', marginRight: '10px', backgroundColor: '#ccc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {displayName ? displayName.charAt(0).toUpperCase() : 'U'}
+            </div>
+          )}
+          <p style={{ fontSize: '32px', textAlign: 'center' }}>{displayName || `FID: ${fid}` || 'Unknown User'}</p>
         </div>
         <p style={{ fontSize: '42px', textAlign: 'center' }}>{balanceDisplay}</p>
         <p style={{ fontSize: '42px', textAlign: 'center' }}>{usdValueDisplay}</p>
