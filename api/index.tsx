@@ -203,12 +203,15 @@ app.frame('/check', async (c) => {
           {priceUsd !== null && (
             <p style={{ fontSize: '26px', marginTop: '10px', textAlign: 'center' }}>Price: ${priceUsd.toFixed(8)} USD</p>
           )}
+          {priceError && (
+            <p style={{ fontSize: '18px', color: 'red', marginTop: '10px', textAlign: 'center' }}>Price Error: {priceError}</p>
+          )}
         </div>
       ),
       intents: [
         <Button action="/">Back</Button>,
         <Button.Link href="https://polygonscan.com/token/0x3150e01c36ad3af80ba16c1836efcd967e96776e">Polygonscan</Button.Link>,
-        <Button action="/check" value={input}>Refresh</Button>,
+        <Button action="/check" value={input}>Reset</Button>,
       ]
     })
   } catch (error) {
