@@ -160,8 +160,8 @@ app.frame('/check', async (c) => {
 
     const balanceNumber = parseFloat(balance)
     const balanceDisplay = balanceNumber === 0 
-      ? "You don't have any $GOLDIES tokens yet!"
-      : `${balanceNumber.toLocaleString()} $GOLDIES`
+      ? "You don't have any $GOLDIES tokens on Polygon yet!"
+      : `${balanceNumber.toLocaleString()} $GOLDIES on Polygon`
     
     const usdValue = balanceNumber * priceUsd
     const usdValueDisplay = `(~$${usdValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD)`
@@ -186,6 +186,8 @@ app.frame('/check', async (c) => {
           </div>
           <p style={{ fontSize: '42px', textAlign: 'center' }}>{balanceDisplay}</p>
           <p style={{ fontSize: '42px', textAlign: 'center' }}>{usdValueDisplay}</p>
+          <p style={{ fontSize: '32px', marginTop: '20px', textAlign: 'center' }}>Address: {address || `FID: ${fid}`}</p>
+          <p style={{ fontSize: '32px', marginTop: '10px', textAlign: 'center' }}>Network: Polygon (Chain ID: {POLYGON_CHAIN_ID})</p>
           <p style={{ fontSize: '26px', marginTop: '10px', textAlign: 'center' }}>Price: ${priceUsd.toFixed(8)} USD</p>
         </div>
       ),
