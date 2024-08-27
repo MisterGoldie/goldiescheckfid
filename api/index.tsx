@@ -32,32 +32,34 @@ async function getGoldiesBalance(address: string): Promise<string> {
   try {
     console.log('Fetching balance for address:', address)
     const provider = new ethers.JsonRpcProvider(ALCHEMY_POLYGON_URL, POLYGON_CHAIN_ID)
-    console.log('Provider created')
-
     const contract = new ethers.Contract(GOLDIES_TOKEN_ADDRESS, ABI, provider)
-    console.log('Contract instance created')
-    
-    const latestBlock = await provider.getBlockNumber()
-    console.log('Latest block number:', latestBlock)
 
-    console.log('Calling balanceOf...')
-    const balance = await contract.balanceOf(address, { blockTag: latestBlock })
-    console.log('Raw balance:', balance.toString())
+    let balance, decimals;
+    try {
+      balance = await contract.balanceOf(address)
+      console.log('Raw balance:', balance.toString())
+    } catch (error) {
+      console.error('Error fetching balance:', error)
+      throw new Error(`Failed to fetch balance: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
 
-    console.log('Fetching decimals...')
-    const decimals = await contract.decimals()
-    console.log('Decimals:', decimals)
-    
+    try {
+      decimals = await contract.decimals()
+      console.log('Decimals:', decimals)
+    } catch (error) {
+      console.error('Error fetching decimals:', error)
+      throw new Error(`Failed to fetch decimals: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+
     const formattedBalance = ethers.formatUnits(balance, decimals)
-    console.log('Formatted balance:', formattedBalance)
+    console.log('Fetched balance:', formattedBalance)
     return formattedBalance
   } catch (error) {
-    console.error('Detailed error in getGoldiesBalance:', error)
+    console.error('Error in getGoldiesBalance:', error)
     if (error instanceof Error) {
-      console.error('Error message:', error.message)
-      console.error('Error stack:', error.stack)
+      return `Error: ${error.message}`
     }
-    throw error
+    return 'Error: Unable to fetch balance'
   }
 }
 
@@ -79,31 +81,10 @@ async function getConnectedAddress(fid: number): Promise<string | null> {
   }
 }
 
-async function getGoldiesUsdPrice(): Promise<number> {
-  try {
-    console.log('Fetching $GOLDIES price from DEX Screener...')
-    const response = await fetch('https://api.dexscreener.com/latest/dex/pairs/polygon/0x19976577bb2fa3174b4ae4cf55e6795dde730135')
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    const data = await response.json()
-    console.log('DEX Screener API response:', JSON.stringify(data, null, 2))
-
-    if (data.pair && data.pair.priceUsd) {
-      const priceUsd = parseFloat(data.pair.priceUsd)
-      console.log('Fetched $GOLDIES price in USD:', priceUsd)
-      return priceUsd
-    } else {
-      console.error('Invalid or missing price data in DEX Screener response:', data)
-      throw new Error('Invalid price data received from DEX Screener')
-    }
-  } catch (error) {
-    console.error('Error in getGoldiesUsdPrice:', error)
-    throw error
-  }
-}
-
 app.frame('/', (c) => {
+  const { frameData, status } = c
+  const errorMessage = status === 'response' ? frameData?.inputText : null
+
   return c.res({
     image: (
       <div style={{ 
@@ -133,6 +114,9 @@ app.frame('/', (c) => {
           color: 'white',
           textShadow: '2px 2px 4px rgba(0,0,0,0.5)'
         }}>Click to check your $GOLDIES balance</p>
+        {errorMessage && (
+          <p style={{ fontSize: '18px', color: 'red', marginBottom: '20px', textAlign: 'center' }}>{errorMessage}</p>
+        )}
       </div>
     ),
     intents: [
@@ -143,7 +127,7 @@ app.frame('/', (c) => {
 
 app.frame('/check', async (c) => {
   console.log('Full frameData:', JSON.stringify(c.frameData, null, 2))
-  
+
   const { fid } = c.frameData || {}
   const { displayName, pfpUrl } = c.var.interactor || {}
 
@@ -151,67 +135,87 @@ app.frame('/check', async (c) => {
   console.log('Display Name:', displayName)
   console.log('Profile Picture URL:', pfpUrl)
 
-  let balanceDisplay = "Unable to fetch balance"
-  let usdValueDisplay = ""
-  let priceUsd = 0
+  if (!fid) {
+    return c.res({
+      image: (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundColor: '#FF8B19', padding: '20px', boxSizing: 'border-box' }}>
+          <h1 style={{ fontSize: '48px', marginBottom: '20px', textAlign: 'center' }}>Error</h1>
+          <p style={{ fontSize: '36px', textAlign: 'center' }}>Unable to retrieve your Farcaster ID. Please ensure you have a valid Farcaster profile.</p>
+        </div>
+      ),
+      intents: [
+        <Button action="/">Back</Button>
+      ]
+    })
+  }
 
   try {
-    if (!fid) {
-      throw new Error('No FID found for the user.')
-    }
-
     const connectedAddress = await getConnectedAddress(fid);
     if (!connectedAddress) {
       throw new Error('Unable to fetch connected Ethereum address');
     }
     console.log('Connected Ethereum address:', connectedAddress);
 
-    console.log('Fetching balance and price')
+    console.log('Fetching balance for address:', connectedAddress)
     const balance = await getGoldiesBalance(connectedAddress)
-    priceUsd = await getGoldiesUsdPrice()
 
-    const balanceNumber = parseFloat(balance)
-    balanceDisplay = balanceNumber === 0 
-      ? "You don't have any $GOLDIES tokens yet!"
-      : `${balanceNumber.toLocaleString()} $GOLDIES`
-    
-    const usdValue = balanceNumber * priceUsd
-    usdValueDisplay = `(~$${usdValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD)`
+    let balanceDisplay = ''
+
+    if (balance === '0.00') {
+      balanceDisplay = "You don't have any $GOLDIES tokens on Polygon yet!"
+    } else if (!balance.startsWith('Error')) {
+      const balanceNumber = parseFloat(balance)
+      balanceDisplay = `${balanceNumber.toLocaleString()} $GOLDIES on Polygon`
+    } else {
+      balanceDisplay = balance
+    }
+
+    return c.res({
+      image: (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundColor: '#FF8B19', padding: '20px', boxSizing: 'border-box' }}>
+          <h1 style={{ fontSize: '60px', marginBottom: '20px', textAlign: 'center' }}>Your $GOLDIES Balance</h1>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
+            {pfpUrl ? (
+              <img 
+                src={pfpUrl} 
+                alt="Profile" 
+                style={{ width: '64px', height: '64px', borderRadius: '50%', marginRight: '10px' }}
+              />
+            ) : (
+              <div style={{ width: '64px', height: '64px', borderRadius: '50%', marginRight: '10px', backgroundColor: '#ccc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {displayName ? displayName.charAt(0).toUpperCase() : 'U'}
+              </div>
+            )}
+            <p style={{ fontSize: '32px', textAlign: 'center' }}>{displayName || `FID: ${fid}`}</p>
+          </div>
+          <p style={{ fontSize: '42px', textAlign: 'center' }}>{balanceDisplay}</p>
+          <p style={{ fontSize: '32px', marginTop: '20px', textAlign: 'center' }}>Address: {connectedAddress}</p>
+          <p style={{ fontSize: '32px', marginTop: '10px', textAlign: 'center' }}>Network: Polygon (Chain ID: {POLYGON_CHAIN_ID})</p>
+        </div>
+      ),
+      intents: [
+        <Button action="/">Back</Button>,
+        <Button.Link href="https://polygonscan.com/token/0x3150e01c36ad3af80ba16c1836efcd967e96776e">Polygonscan</Button.Link>,
+        <Button action="/check">Refresh</Button>,
+      ]
+    })
   } catch (error) {
     console.error('Error in balance check:', error)
-    balanceDisplay = "Error fetching balance"
-    usdValueDisplay = "Unable to calculate USD value"
-  }
-
-  return c.res({
-    image: (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundColor: '#FF8B19', padding: '20px', boxSizing: 'border-box' }}>
-        <h1 style={{ fontSize: '60px', marginBottom: '20px', textAlign: 'center' }}>Your $GOLDIES Balance</h1>
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
-          {pfpUrl ? (
-            <img 
-              src={pfpUrl} 
-              alt="Profile" 
-              style={{ width: '64px', height: '64px', borderRadius: '50%', marginRight: '10px' }}
-            />
-          ) : (
-            <div style={{ width: '64px', height: '64px', borderRadius: '50%', marginRight: '10px', backgroundColor: '#ccc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {displayName ? displayName.charAt(0).toUpperCase() : 'U'}
-            </div>
-          )}
-          <p style={{ fontSize: '32px', textAlign: 'center' }}>{displayName || `FID: ${fid}` || 'Unknown User'}</p>
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred'
+    return c.res({
+      image: (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundColor: '#FF8B19', padding: '20px', boxSizing: 'border-box' }}>
+          <h1 style={{ fontSize: '48px', marginBottom: '20px', textAlign: 'center' }}>Error</h1>
+          <p style={{ fontSize: '36px', textAlign: 'center' }}>Unable to fetch balance. Please try again.</p>
+          <p style={{ fontSize: '24px', textAlign: 'center' }}>Error details: {errorMessage}</p>
         </div>
-        <p style={{ fontSize: '42px', textAlign: 'center' }}>{balanceDisplay}</p>
-        <p style={{ fontSize: '42px', textAlign: 'center' }}>{usdValueDisplay}</p>
-        {priceUsd > 0 && <p style={{ fontSize: '26px', marginTop: '10px', textAlign: 'center' }}>Price: ${priceUsd.toFixed(8)} USD</p>}
-      </div>
-    ),
-    intents: [
-      <Button action="/">Back</Button>,
-      <Button.Link href="https://polygonscan.com/token/0x3150e01c36ad3af80ba16c1836efcd967e96776e">Polygonscan</Button.Link>,
-      <Button action="/check">Refresh</Button>,
-    ]
-  })
+      ),
+      intents: [
+        <Button action="/">Back</Button>,
+        <Button action="/check">Retry</Button>
+      ]
+    })
+  }
 })
 
 export const GET = handle(app)
