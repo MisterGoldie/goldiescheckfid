@@ -51,10 +51,12 @@ async function getGoldiesBalance(address: string): Promise<string> {
       })
     });
 
+    console.log('Airstack API response status:', response.status);
+    console.log('Airstack API response headers:', JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2));
+
     if (!response.ok) {
-      console.error('Airstack API response not OK. Status:', response.status);
       const responseText = await response.text();
-      console.error('Response body:', responseText);
+      console.error('Airstack API error response:', responseText);
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
@@ -70,7 +72,12 @@ async function getGoldiesBalance(address: string): Promise<string> {
     console.error('No balance data found in Airstack response');
     return "0";
   } catch (error) {
-    console.error('Error in getGoldiesBalance:', error);
+    console.error('Detailed error in getGoldiesBalance:', error);
+    if (error instanceof Error) {
+      console.error('Error name:', error.name);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
     throw error;
   }
 }
@@ -97,7 +104,12 @@ async function getGoldiesUsdPrice(): Promise<number> {
       })
     })
 
+    console.log('Uniswap API response status:', response.status);
+    console.log('Uniswap API response headers:', JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2));
+
     if (!response.ok) {
+      const responseText = await response.text();
+      console.error('Uniswap API error response:', responseText);
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
@@ -113,7 +125,12 @@ async function getGoldiesUsdPrice(): Promise<number> {
       throw new Error('Invalid price data received from Uniswap')
     }
   } catch (error) {
-    console.error('Error in getGoldiesUsdPrice:', error)
+    console.error('Detailed error in getGoldiesUsdPrice:', error);
+    if (error instanceof Error) {
+      console.error('Error name:', error.name);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
     throw error
   }
 }
@@ -145,10 +162,12 @@ async function getConnectedAddress(fid: number): Promise<string | null> {
       })
     });
 
+    console.log('Airstack API response status:', response.status);
+    console.log('Airstack API response headers:', JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2));
+
     if (!response.ok) {
-      console.error('Airstack API response not OK. Status:', response.status);
       const responseText = await response.text();
-      console.error('Response body:', responseText);
+      console.error('Airstack API error response:', responseText);
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
@@ -165,7 +184,12 @@ async function getConnectedAddress(fid: number): Promise<string | null> {
     console.error('No associated Ethereum address found in Airstack response');
     return null;
   } catch (error) {
-    console.error('Error in getConnectedAddress:', error);
+    console.error('Detailed error in getConnectedAddress:', error);
+    if (error instanceof Error) {
+      console.error('Error name:', error.name);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
     return null;
   }
 }
@@ -246,7 +270,12 @@ app.frame('/check', async (c) => {
     const usdValue = balanceNumber * priceUsd
     usdValueDisplay = `(~$${usdValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD)`
   } catch (error) {
-    console.error('Error in balance check:', error)
+    console.error('Detailed error in balance check:', error);
+    if (error instanceof Error) {
+      console.error('Error name:', error.name);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
     balanceDisplay = "Error fetching balance"
     usdValueDisplay = "Unable to calculate USD value"
     errorDetails = error instanceof Error ? `${error.name}: ${error.message}` : 'Unknown error'
@@ -256,7 +285,12 @@ app.frame('/check', async (c) => {
     image: (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundColor: '#FF8B19', padding: '20px', boxSizing: 'border-box' }}>
         <h1 style={{ fontSize: '60px', marginBottom: '20px', textAlign: 'center' }}>Your $GOLDIES Balance</h1>
-        <p style={{ fontSize: '32px', textAlign: 'center' }}>FID: {fid}</p>
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
+          <div style={{ width: '64px', height: '64px', borderRadius: '50%', marginRight: '10px', backgroundColor: '#ccc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ fontSize: '24px', color: '#666' }}>{fid ? fid.toString()[0].toUpperCase() : '?'}</span>
+          </div>
+          <p style={{ fontSize: '32px', textAlign: 'center' }}>FID: {fid}</p>
+        </div>
         <p style={{ fontSize: '42px', textAlign: 'center' }}>{balanceDisplay}</p>
         <p style={{ fontSize: '42px', textAlign: 'center' }}>{usdValueDisplay}</p>
         {priceUsd > 0 && <p style={{ fontSize: '26px', marginTop: '10px', textAlign: 'center' }}>Price: ${priceUsd.toFixed(8)} USD</p>}
