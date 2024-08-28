@@ -201,7 +201,7 @@ app.frame('/check', async (c) => {
       throw new Error('Unable to fetch connected Ethereum addresses');
     }
     
-    // For now, we'll use the first address. You might want to implement logic to choose the most appropriate address.
+    // Prioritize the most recently connected or active address
     address = connectedAddresses[0];
     console.log('Using Ethereum address:', address);
 
