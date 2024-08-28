@@ -18,39 +18,65 @@ export const app = new Frog({
 const GOLDIES_TOKEN_ADDRESS = '0x3150E01c36ad3Af80bA16C1836eFCD967E96776e'
 const ALCHEMY_POLYGON_URL = 'https://polygon-mainnet.g.alchemy.com/v2/pe-VGWmYoLZ0RjSXwviVMNIDLGwgfkao'
 const POLYGON_CHAIN_ID = 137
-const NEYNAR_API_URL = 'https://api.neynar.com/v2/farcaster'
-const NEYNAR_API_KEY = '71332A9D-240D-41E0-8644-31BD70E64036'
+const AIRSTACK_API_URL = 'https://api.airstack.xyz/gql'
+const AIRSTACK_API_KEY = 'YOUR_AIRSTACK_API_KEY_HERE' // Replace with your actual Airstack API key
 
 const ABI = [
   'function balanceOf(address account) view returns (uint256)',
   'function decimals() view returns (uint8)',
 ]
 
-async function getConnectedAddress(fid: number): Promise<string | null> {
-  console.log('Attempting to fetch connected address for FID:', fid);
+async function getConnectedAddresses(fid: string): Promise<string[]> {
+  console.log('Attempting to fetch connected addresses for FID:', fid);
   try {
-    const url = `${NEYNAR_API_URL}/user?fid=${fid}`;
-    console.log('Neynar API URL:', url);
-    const response = await fetch(url, {
-      headers: {
-        'api_key': NEYNAR_API_KEY
+    const query = `
+      query ConnectedWalletWithFID($fid: String!) {
+        Socials(input: {filter: {userId: {_eq: $fid}}, blockchain: ethereum}) {
+          Social {
+            dappName
+            profileName
+            userAddress
+            connectedAddresses {
+              address
+              blockchain
+            }
+          }
+        }
       }
+    `;
+
+    const variables = { fid };
+
+    const response = await fetch(AIRSTACK_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': AIRSTACK_API_KEY
+      },
+      body: JSON.stringify({ query, variables })
     });
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
+
     const data = await response.json();
-    console.log('Neynar API response data:', JSON.stringify(data, null, 2));
-    
-    if (!data.result || !data.result.user || !data.result.user.custody_address) {
-      console.error('Unexpected response structure from Neynar API');
-      return null;
+    console.log('Full Airstack API response:', JSON.stringify(data, null, 2));
+
+    if (!data.data || !data.data.Socials || !data.data.Socials.Social) {
+      console.error('Unexpected response structure from Airstack API');
+      return [];
     }
-    
-    return data.result.user.custody_address;
+
+    const addresses = data.data.Socials.Social.flatMap((social: { connectedAddresses: any[] }) => 
+      social.connectedAddresses.map((addr: { address: any }) => addr.address)
+    );
+
+    console.log('Connected addresses:', addresses);
+    return addresses;
   } catch (error) {
-    console.error('Error in getConnectedAddress:', error);
-    return null;
+    console.error('Error in getConnectedAddresses:', error);
+    return [];
   }
 }
 
@@ -156,14 +182,16 @@ app.frame('/check', async (c) => {
       throw new Error('No FID found for the user.')
     }
 
-    console.log('Attempting to get connected address for FID:', fid);
-    const connectedAddress = await getConnectedAddress(fid);
-    if (!connectedAddress) {
-      console.error('Failed to fetch connected Ethereum address for FID:', fid);
-      throw new Error('Unable to fetch connected Ethereum address');
+    console.log('Attempting to get connected addresses for FID:', fid);
+    const connectedAddresses = await getConnectedAddresses(fid.toString());
+    if (connectedAddresses.length === 0) {
+      console.error('Failed to fetch connected Ethereum addresses for FID:', fid);
+      throw new Error('Unable to fetch connected Ethereum addresses');
     }
-    address = connectedAddress;
-    console.log('Connected Ethereum address:', connectedAddress);
+    
+    // For now, we'll use the first address. You might want to implement logic to choose the most appropriate address.
+    address = connectedAddresses[0];
+    console.log('Using Ethereum address:', address);
 
     console.log('Fetching balance and price')
     const balance = await getGoldiesBalance(address)
@@ -178,7 +206,7 @@ app.frame('/check', async (c) => {
 
     const usdValue = balanceNumber * priceUsd
     usdValueDisplay = `(~$${usdValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD)`
-    
+
     console.log('Final balance display:', balanceDisplay);
     console.log('Final USD value display:', usdValueDisplay);
   } catch (error) {
