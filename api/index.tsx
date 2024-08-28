@@ -3,13 +3,11 @@ import { handle } from 'frog/vercel'
 import { ethers } from 'ethers'
 import fetch from 'node-fetch'
 import { neynar } from 'frog/middlewares'
-import { pinata } from 'frog/hubs'
 
 export const app = new Frog({
   basePath: '/api',
   imageOptions: { width: 1200, height: 630 },
   title: '$GOLDIES Token Tracker on Polygon',
-  hub: pinata(),
 }).use(
   neynar({
     apiKey: 'NEYNAR_FROG_FM',
@@ -30,54 +28,42 @@ const ABI = [
 
 async function getGoldiesBalance(address: string): Promise<string> {
   try {
-    console.log('Starting getGoldiesBalance for address:', address)
-    
-    console.log('Creating provider...')
+    console.log('Fetching balance for address:', address)
     const provider = new ethers.JsonRpcProvider(ALCHEMY_POLYGON_URL, POLYGON_CHAIN_ID)
-    console.log('Provider created successfully')
-
-    console.log('Creating contract instance...')
     const contract = new ethers.Contract(GOLDIES_TOKEN_ADDRESS, ABI, provider)
-    console.log('Contract instance created successfully')
 
-    console.log('Fetching latest block number...')
-    const latestBlock = await provider.getBlockNumber()
-    console.log('Latest block number:', latestBlock)
+    const balance = await contract.balanceOf(address)
+    const decimals = await contract.decimals()
 
-    console.log('Calling balanceOf...')
-    let balance
-    try {
-      balance = await contract.balanceOf(address, { blockTag: latestBlock })
-      console.log('Raw balance:', balance.toString())
-    } catch (error) {
-      console.error('Error in balanceOf call:', error)
-      throw new Error(`Failed to fetch balance: ${error instanceof Error ? error.message : 'Unknown error'}`)
-    }
-
-    console.log('Fetching decimals...')
-    let decimals
-    try {
-      decimals = await contract.decimals()
-      console.log('Decimals:', decimals)
-    } catch (error) {
-      console.error('Error in decimals call:', error)
-      throw new Error(`Failed to fetch decimals: ${error instanceof Error ? error.message : 'Unknown error'}`)
-    }
-
-    console.log('Formatting balance...')
     const formattedBalance = ethers.formatUnits(balance, decimals)
-    console.log('Formatted balance:', formattedBalance)
-    
+    console.log('Fetched balance:', formattedBalance)
     return formattedBalance
   } catch (error) {
-    console.error('Detailed error in getGoldiesBalance:', error)
-    if (error instanceof Error) {
-      console.error('Error name:', error.name)
-      console.error('Error message:', error.message)
-      console.error('Error stack:', error.stack)
-    } else {
-      console.error('Unknown error type:', error)
+    console.error('Error in getGoldiesBalance:', error)
+    return 'Error: Unable to fetch balance'
+  }
+}
+
+async function getGoldiesUsdPrice(): Promise<number> {
+  try {
+    console.log('Fetching $GOLDIES price from DEX Screener...')
+    const response = await fetch('https://api.dexscreener.com/latest/dex/pairs/polygon/0x19976577bb2fa3174b4ae4cf55e6795dde730135')
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
+    const data = await response.json()
+    console.log('DEX Screener API response:', JSON.stringify(data, null, 2))
+
+    if (data.pair && data.pair.priceUsd) {
+      const priceUsd = parseFloat(data.pair.priceUsd)
+      console.log('Fetched $GOLDIES price in USD:', priceUsd)
+      return priceUsd
+    } else {
+      console.error('Invalid or missing price data in DEX Screener response:', data)
+      throw new Error('Invalid price data received from DEX Screener')
+    }
+  } catch (error) {
+    console.error('Error in getGoldiesUsdPrice:', error)
     throw error
   }
 }
@@ -110,30 +96,6 @@ async function getConnectedAddress(fid: number): Promise<string | null> {
   } catch (error) {
     console.error('Error in getConnectedAddress:', error);
     return null;
-  }
-}
-
-async function getGoldiesUsdPrice(): Promise<number> {
-  try {
-    console.log('Fetching $GOLDIES price from DEX Screener...')
-    const response = await fetch('https://api.dexscreener.com/latest/dex/pairs/polygon/0x19976577bb2fa3174b4ae4cf55e6795dde730135')
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    const data = await response.json()
-    console.log('DEX Screener API response:', JSON.stringify(data, null, 2))
-
-    if (data.pair && data.pair.priceUsd) {
-      const priceUsd = parseFloat(data.pair.priceUsd)
-      console.log('Fetched $GOLDIES price in USD:', priceUsd)
-      return priceUsd
-    } else {
-      console.error('Invalid or missing price data in DEX Screener response:', data)
-      throw new Error('Invalid price data received from DEX Screener')
-    }
-  } catch (error) {
-    console.error('Error in getGoldiesUsdPrice:', error)
-    throw error // Re-throw the error to be handled by the caller
   }
 }
 
@@ -189,6 +151,7 @@ app.frame('/check', async (c) => {
   let usdValueDisplay = ""
   let priceUsd = 0
   let errorDetails = ""
+  let address = ""
 
   try {
     if (!fid) {
@@ -202,6 +165,7 @@ app.frame('/check', async (c) => {
       console.error('Failed to fetch connected Ethereum address for FID:', fid);
       throw new Error('Unable to fetch connected Ethereum address');
     }
+    address = connectedAddress;
     console.log('Connected Ethereum address:', connectedAddress);
 
     console.log('Fetching balance and price')
@@ -242,6 +206,8 @@ app.frame('/check', async (c) => {
         </div>
         <p style={{ fontSize: '42px', textAlign: 'center' }}>{balanceDisplay}</p>
         <p style={{ fontSize: '42px', textAlign: 'center' }}>{usdValueDisplay}</p>
+        <p style={{ fontSize: '32px', marginTop: '20px', textAlign: 'center' }}>Address: {address}</p>
+        <p style={{ fontSize: '32px', marginTop: '10px', textAlign: 'center' }}>Network: Polygon (Chain ID: {POLYGON_CHAIN_ID})</p>
         {priceUsd > 0 && <p style={{ fontSize: '26px', marginTop: '10px', textAlign: 'center' }}>Price: ${priceUsd.toFixed(8)} USD</p>}
         {errorDetails && <p style={{ fontSize: '18px', color: 'red', marginTop: '10px', textAlign: 'center' }}>Error: {errorDetails}</p>}
       </div>
