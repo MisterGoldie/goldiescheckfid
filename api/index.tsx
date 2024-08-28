@@ -26,6 +26,34 @@ const ABI = [
   'function decimals() view returns (uint8)',
 ]
 
+async function getConnectedAddress(fid: number): Promise<string | null> {
+  console.log('Attempting to fetch connected address for FID:', fid);
+  try {
+    const url = `${NEYNAR_API_URL}/user?fid=${fid}`;
+    console.log('Neynar API URL:', url);
+    const response = await fetch(url, {
+      headers: {
+        'api_key': NEYNAR_API_KEY
+      }
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    console.log('Neynar API response data:', JSON.stringify(data, null, 2));
+    
+    if (!data.result || !data.result.user || !data.result.user.custody_address) {
+      console.error('Unexpected response structure from Neynar API');
+      return null;
+    }
+    
+    return data.result.user.custody_address;
+  } catch (error) {
+    console.error('Error in getConnectedAddress:', error);
+    return null;
+  }
+}
+
 async function getGoldiesBalance(address: string): Promise<string> {
   try {
     console.log('Fetching balance for address:', address)
@@ -65,34 +93,6 @@ async function getGoldiesUsdPrice(): Promise<number> {
   } catch (error) {
     console.error('Error in getGoldiesUsdPrice:', error)
     throw error
-  }
-}
-
-async function getConnectedAddress(fid: number): Promise<string | null> {
-  console.log('Attempting to fetch connected address for FID:', fid);
-  try {
-    const url = `${NEYNAR_API_URL}/user?fid=${fid}`;
-    console.log('Neynar API URL:', url);
-    const response = await fetch(url, {
-      headers: {
-        'api_key': NEYNAR_API_KEY
-      }
-    });
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    const data = await response.json();
-    console.log('Neynar API response data:', JSON.stringify(data, null, 2));
-    
-    if (!data.result || !data.result.user || !data.result.user.custody_address) {
-      console.error('Unexpected response structure from Neynar API');
-      return null;
-    }
-    
-    return data.result.user.custody_address;
-  } catch (error) {
-    console.error('Error in getConnectedAddress:', error);
-    return null;
   }
 }
 
@@ -166,14 +166,14 @@ app.frame('/check', async (c) => {
     console.log('Connected Ethereum address:', connectedAddress);
 
     console.log('Fetching balance and price')
-    const balance = await getGoldiesBalance(connectedAddress)
+    const balance = await getGoldiesBalance(address)
     console.log('Fetched balance:', balance);
     priceUsd = await getGoldiesUsdPrice()
     console.log('Fetched price:', priceUsd);
 
     const balanceNumber = parseFloat(balance)
     balanceDisplay = balanceNumber === 0 
-      ? "You don't have any $GOLDIES tokens yet!"
+      ? "You don't have any $GOLDIES tokens on Polygon yet!"
       : `${balanceNumber.toLocaleString()} $GOLDIES`
 
     const usdValue = balanceNumber * priceUsd
