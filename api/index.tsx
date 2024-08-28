@@ -19,7 +19,7 @@ const GOLDIES_TOKEN_ADDRESS = '0x3150E01c36ad3Af80bA16C1836eFCD967E96776e'
 const ALCHEMY_POLYGON_URL = 'https://polygon-mainnet.g.alchemy.com/v2/pe-VGWmYoLZ0RjSXwviVMNIDLGwgfkao'
 const POLYGON_CHAIN_ID = 137
 const NEYNAR_API_URL = 'https://api.neynar.com/v2/farcaster'
-const NEYNAR_API_KEY = 'NEYNAR_FROG_FM'
+const NEYNAR_API_KEY = '71332A9D-240D-41E0-8644-31BD70E64036'
 
 const ABI = [
   'function balanceOf(address account) view returns (uint256)',
