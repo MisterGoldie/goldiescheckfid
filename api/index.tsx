@@ -22,7 +22,6 @@ const ALCHEMY_POLYGON_URL = 'https://polygon-mainnet.g.alchemy.com/v2/pe-VGWmYoL
 const POLYGON_CHAIN_ID = 137
 const NEYNAR_API_URL = 'https://api.neynar.com/v2/farcaster'
 const NEYNAR_API_KEY = 'NEYNAR_FROG_FM'
-const UNISWAP_API_URL = 'https://api.uniswap.org/v1/graphql'
 
 const ABI = [
   'function balanceOf(address account) view returns (uint256)',
@@ -116,44 +115,25 @@ async function getConnectedAddress(fid: number): Promise<string | null> {
 
 async function getGoldiesUsdPrice(): Promise<number> {
   try {
-    console.log('Fetching $GOLDIES price from Uniswap...')
-    const response = await fetch(UNISWAP_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Origin': 'https://app.uniswap.org'
-      },
-      body: JSON.stringify({
-        query: `
-          query {
-            token(id: "${GOLDIES_TOKEN_ADDRESS.toLowerCase()}", chain: POLYGON) {
-              market(currency: USD) {
-                price
-              }
-            }
-          }
-        `
-      })
-    })
-
+    console.log('Fetching $GOLDIES price from DEX Screener...')
+    const response = await fetch('https://api.dexscreener.com/latest/dex/pairs/polygon/0x19976577bb2fa3174b4ae4cf55e6795dde730135')
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-
     const data = await response.json()
-    console.log('Uniswap API response:', JSON.stringify(data, null, 2))
+    console.log('DEX Screener API response:', JSON.stringify(data, null, 2))
 
-    if (data.data && data.data.token && data.data.token.market && data.data.token.market.price) {
-      const priceUsd = parseFloat(data.data.token.market.price)
+    if (data.pair && data.pair.priceUsd) {
+      const priceUsd = parseFloat(data.pair.priceUsd)
       console.log('Fetched $GOLDIES price in USD:', priceUsd)
       return priceUsd
     } else {
-      console.error('Invalid or missing price data in Uniswap response:', data)
-      throw new Error('Invalid price data received from Uniswap')
+      console.error('Invalid or missing price data in DEX Screener response:', data)
+      throw new Error('Invalid price data received from DEX Screener')
     }
   } catch (error) {
     console.error('Error in getGoldiesUsdPrice:', error)
-    throw error
+    throw error // Re-throw the error to be handled by the caller
   }
 }
 
