@@ -39,7 +39,12 @@ async function getGoldiesBalance(address: string): Promise<string> {
     console.log('Fetched balance:', formattedBalance)
     return formattedBalance
   } catch (error) {
-    console.error('Error in getGoldiesBalance:', error)
+    console.error('Detailed error in getGoldiesBalance:', error)
+    if (error instanceof Error) {
+      console.error('Error name:', error.name)
+      console.error('Error message:', error.message)
+      console.error('Error stack:', error.stack)
+    }
     return 'Error: Unable to fetch balance'
   }
 }
@@ -63,7 +68,12 @@ async function getGoldiesUsdPrice(): Promise<number> {
       throw new Error('Invalid price data received from DEX Screener')
     }
   } catch (error) {
-    console.error('Error in getGoldiesUsdPrice:', error)
+    console.error('Detailed error in getGoldiesUsdPrice:', error)
+    if (error instanceof Error) {
+      console.error('Error name:', error.name)
+      console.error('Error message:', error.message)
+      console.error('Error stack:', error.stack)
+    }
     throw error
   }
 }
@@ -78,6 +88,7 @@ async function getConnectedAddress(fid: number): Promise<string | null> {
         'api_key': NEYNAR_API_KEY
       }
     });
+    console.log('Neynar API response status:', response.status);
     if (!response.ok) {
       console.error('Neynar API response not OK. Status:', response.status);
       const responseText = await response.text();
@@ -88,13 +99,19 @@ async function getConnectedAddress(fid: number): Promise<string | null> {
     console.log('Neynar API response data:', JSON.stringify(data, null, 2));
     
     if (!data.result || !data.result.user || !data.result.user.custody_address) {
-      console.error('Unexpected response structure from Neynar API');
+      console.error('Unexpected response structure from Neynar API:', JSON.stringify(data, null, 2));
       return null;
     }
     
+    console.log('Successfully fetched connected address:', data.result.user.custody_address);
     return data.result.user.custody_address;
   } catch (error) {
-    console.error('Error in getConnectedAddress:', error);
+    console.error('Detailed error in getConnectedAddress:', error);
+    if (error instanceof Error) {
+      console.error('Error name:', error.name);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
     return null;
   }
 }
@@ -139,6 +156,7 @@ app.frame('/', (c) => {
 
 app.frame('/check', async (c) => {
   console.log('Full frameData:', JSON.stringify(c.frameData, null, 2));
+  console.log('Full context:', JSON.stringify(c, null, 2));
 
   const { fid } = c.frameData || {};
   const { displayName, pfpUrl } = c.var.interactor || {};
@@ -170,7 +188,9 @@ app.frame('/check', async (c) => {
 
     console.log('Fetching balance and price')
     const balance = await getGoldiesBalance(connectedAddress)
+    console.log('Fetched balance:', balance);
     priceUsd = await getGoldiesUsdPrice()
+    console.log('Fetched price:', priceUsd);
 
     const balanceNumber = parseFloat(balance)
     balanceDisplay = balanceNumber === 0 
@@ -179,8 +199,16 @@ app.frame('/check', async (c) => {
 
     const usdValue = balanceNumber * priceUsd
     usdValueDisplay = `(~$${usdValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD)`
+    
+    console.log('Final balance display:', balanceDisplay);
+    console.log('Final USD value display:', usdValueDisplay);
   } catch (error) {
-    console.error('Error in balance check:', error)
+    console.error('Detailed error in balance check:', error);
+    if (error instanceof Error) {
+      console.error('Error name:', error.name);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
     balanceDisplay = "Error fetching balance"
     usdValueDisplay = "Unable to calculate USD value"
     errorDetails = error instanceof Error ? `${error.name}: ${error.message}` : 'Unknown error'
