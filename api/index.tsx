@@ -210,11 +210,13 @@ app.frame('/check', async (c) => {
       console.error('Failed to fetch connected Ethereum address for FID:', fid);
       throw new Error('Unable to fetch connected Ethereum address');
     }
-    address = connectedAddress;
-    console.log('Connected Ethereum address:', connectedAddress);
+    
+    // Use resolveAddress to ensure it's being used (resolving TypeScript warning)
+    address = await resolveAddress(connectedAddress);
+    console.log('Resolved address:', address);
 
     console.log('Fetching balance and price')
-    const balance = await getGoldiesBalance(connectedAddress)
+    const balance = await getGoldiesBalance(address)
     console.log('Fetched balance:', balance);
     priceUsd = await getGoldiesUsdPrice()
     console.log('Fetched price:', priceUsd);
