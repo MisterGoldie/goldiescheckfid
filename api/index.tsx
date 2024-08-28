@@ -17,7 +17,6 @@ export const app = new Frog({
 
 const GOLDIES_TOKEN_ADDRESS = '0x3150E01c36ad3Af80bA16C1836eFCD967E96776e'
 const ALCHEMY_POLYGON_URL = 'https://polygon-mainnet.g.alchemy.com/v2/pe-VGWmYoLZ0RjSXwviVMNIDLGwgfkao'
-const ALCHEMY_MAINNET_URL = 'https://eth-mainnet.g.alchemy.com/v2/pe-VGWmYoLZ0RjSXwviVMNIDLGwgfkao'
 const POLYGON_CHAIN_ID = 137
 const NEYNAR_API_URL = 'https://api.neynar.com/v2/farcaster'
 const NEYNAR_API_KEY = 'NEYNAR_FROG_FM'
@@ -26,32 +25,6 @@ const ABI = [
   'function balanceOf(address account) view returns (uint256)',
   'function decimals() view returns (uint8)',
 ]
-
-async function resolveAddress(input: unknown): Promise<string> {
-  if (typeof input !== 'string' || input.trim() === '') {
-    throw new Error('Invalid input: Address or ENS name must be a non-empty string');
-  }
-
-  const trimmedInput = input.trim();
-
-  if (ethers.isAddress(trimmedInput)) {
-    return trimmedInput;
-  }
-
-  if ((trimmedInput as string).endsWith('.eth')) {
-    const provider = new ethers.JsonRpcProvider(ALCHEMY_MAINNET_URL);
-    try {
-      const address = await provider.resolveName(trimmedInput);
-      if (address) {
-        return address;
-      }
-    } catch (error) {
-      console.error('Error resolving ENS name:', error);
-    }
-  }
-
-  throw new Error('Invalid address or ENS name');
-}
 
 async function getGoldiesBalance(address: string): Promise<string> {
   try {
@@ -66,12 +39,7 @@ async function getGoldiesBalance(address: string): Promise<string> {
     console.log('Fetched balance:', formattedBalance)
     return formattedBalance
   } catch (error) {
-    console.error('Detailed error in getGoldiesBalance:', error)
-    if (error instanceof Error) {
-      console.error('Error name:', error.name)
-      console.error('Error message:', error.message)
-      console.error('Error stack:', error.stack)
-    }
+    console.error('Error in getGoldiesBalance:', error)
     return 'Error: Unable to fetch balance'
   }
 }
@@ -95,12 +63,7 @@ async function getGoldiesUsdPrice(): Promise<number> {
       throw new Error('Invalid price data received from DEX Screener')
     }
   } catch (error) {
-    console.error('Detailed error in getGoldiesUsdPrice:', error)
-    if (error instanceof Error) {
-      console.error('Error name:', error.name)
-      console.error('Error message:', error.message)
-      console.error('Error stack:', error.stack)
-    }
+    console.error('Error in getGoldiesUsdPrice:', error)
     throw error
   }
 }
@@ -115,30 +78,20 @@ async function getConnectedAddress(fid: number): Promise<string | null> {
         'api_key': NEYNAR_API_KEY
       }
     });
-    console.log('Neynar API response status:', response.status);
     if (!response.ok) {
-      console.error('Neynar API response not OK. Status:', response.status);
-      const responseText = await response.text();
-      console.error('Response body:', responseText);
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     const data = await response.json();
     console.log('Neynar API response data:', JSON.stringify(data, null, 2));
     
     if (!data.result || !data.result.user || !data.result.user.custody_address) {
-      console.error('Unexpected response structure from Neynar API:', JSON.stringify(data, null, 2));
+      console.error('Unexpected response structure from Neynar API');
       return null;
     }
     
-    console.log('Successfully fetched connected address:', data.result.user.custody_address);
     return data.result.user.custody_address;
   } catch (error) {
-    console.error('Detailed error in getConnectedAddress:', error);
-    if (error instanceof Error) {
-      console.error('Error name:', error.name);
-      console.error('Error message:', error.message);
-      console.error('Error stack:', error.stack);
-    }
+    console.error('Error in getConnectedAddress:', error);
     return null;
   }
 }
@@ -183,7 +136,6 @@ app.frame('/', (c) => {
 
 app.frame('/check', async (c) => {
   console.log('Full frameData:', JSON.stringify(c.frameData, null, 2));
-  console.log('Full context:', JSON.stringify(c, null, 2));
 
   const { fid } = c.frameData || {};
   const { displayName, pfpUrl } = c.var.interactor || {};
@@ -210,13 +162,11 @@ app.frame('/check', async (c) => {
       console.error('Failed to fetch connected Ethereum address for FID:', fid);
       throw new Error('Unable to fetch connected Ethereum address');
     }
-    
-    // Use resolveAddress to ensure it's being used (resolving TypeScript warning)
-    address = await resolveAddress(connectedAddress);
-    console.log('Resolved address:', address);
+    address = connectedAddress;
+    console.log('Connected Ethereum address:', connectedAddress);
 
     console.log('Fetching balance and price')
-    const balance = await getGoldiesBalance(address)
+    const balance = await getGoldiesBalance(connectedAddress)
     console.log('Fetched balance:', balance);
     priceUsd = await getGoldiesUsdPrice()
     console.log('Fetched price:', priceUsd);
