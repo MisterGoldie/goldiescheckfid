@@ -17,6 +17,7 @@ export const app = new Frog({
 
 const GOLDIES_TOKEN_ADDRESS = '0x3150E01c36ad3Af80bA16C1836eFCD967E96776e'
 const ALCHEMY_POLYGON_URL = 'https://polygon-mainnet.g.alchemy.com/v2/pe-VGWmYoLZ0RjSXwviVMNIDLGwgfkao'
+const ALCHEMY_MAINNET_URL = 'https://eth-mainnet.g.alchemy.com/v2/pe-VGWmYoLZ0RjSXwviVMNIDLGwgfkao'
 const POLYGON_CHAIN_ID = 137
 const NEYNAR_API_URL = 'https://api.neynar.com/v2/farcaster'
 const NEYNAR_API_KEY = 'NEYNAR_FROG_FM'
@@ -25,6 +26,32 @@ const ABI = [
   'function balanceOf(address account) view returns (uint256)',
   'function decimals() view returns (uint8)',
 ]
+
+async function resolveAddress(input: unknown): Promise<string> {
+  if (typeof input !== 'string' || input.trim() === '') {
+    throw new Error('Invalid input: Address or ENS name must be a non-empty string');
+  }
+
+  const trimmedInput = input.trim();
+
+  if (ethers.isAddress(trimmedInput)) {
+    return trimmedInput;
+  }
+
+  if ((trimmedInput as string).endsWith('.eth')) {
+    const provider = new ethers.JsonRpcProvider(ALCHEMY_MAINNET_URL);
+    try {
+      const address = await provider.resolveName(trimmedInput);
+      if (address) {
+        return address;
+      }
+    } catch (error) {
+      console.error('Error resolving ENS name:', error);
+    }
+  }
+
+  throw new Error('Invalid address or ENS name');
+}
 
 async function getGoldiesBalance(address: string): Promise<string> {
   try {
