@@ -234,7 +234,19 @@ app.frame('/check', async (c) => {
 
   return c.res({
     image: (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', backgroundColor: '#FF8B19', padding: '20px', boxSizing: 'border-box' }}>
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        width: '100%', 
+        height: '100%', 
+        backgroundImage: 'url(https://amaranth-adequate-condor-278.mypinata.cloud/ipfs/Qme8LxFBeuJhKNdNV1M6BjRkYPDxQddo2eHiPhYaEdALvz)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        padding: '20px', 
+        boxSizing: 'border-box' 
+      }}>
         <h1 style={{ fontSize: '60px', marginBottom: '20px', textAlign: 'center' }}>Your $GOLDIES Balance</h1>
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
           {pfpUrl ? (
