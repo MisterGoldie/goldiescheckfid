@@ -19,7 +19,7 @@ const GOLDIES_TOKEN_ADDRESS = '0x3150E01c36ad3Af80bA16C1836eFCD967E96776e';
 const ALCHEMY_POLYGON_URL = 'https://polygon-mainnet.g.alchemy.com/v2/pe-VGWmYoLZ0RjSXwviVMNIDLGwgfkao';
 const POLYGON_CHAIN_ID = 137;
 const AIRSTACK_API_URL = 'https://api.airstack.xyz/gql';
-const AIRSTACK_API_KEY = '103ba30da492d4a7e89e7026a6d3a234e'; // Replace with your actual Airstack API key
+const AIRSTACK_API_KEY = '103ba30da492d4a7e89e7026a6d3a234e';
 
 const ABI = [
   'function balanceOf(address account) view returns (uint256)',
@@ -251,9 +251,9 @@ app.frame('/check', async (c) => {
           <p style={{ fontSize: '32px', textAlign: 'center' }}>{displayName || `FID: ${fid}` || 'Unknown User'}</p>
         </div>
         <p style={{ fontSize: '42px', textAlign: 'center' }}>{balanceDisplay}</p>
-        <p style={{ fontSize: '42px', textAlign: 'center' }}>{usdValueDisplay}</p>
-        {priceUsd > 0 && <p style={{ fontSize: '26px', marginTop: '10px', textAlign: 'center' }}>Price: ${priceUsd.toFixed(8)} USD</p>}
-        {errorDetails && <p style={{ fontSize: '18px', color: 'red', marginTop: '10px', textAlign: 'center' }}>Error: {errorDetails}</p>}
+        <p style={{ fontSize: '44px', textAlign: 'center' }}>{usdValueDisplay}</p>
+        {priceUsd > 0 && <p style={{ fontSize: '30px', marginTop: '10px', textAlign: 'center' }}>Price: ${priceUsd.toFixed(8)} USD</p>}
+        {errorDetails && <p style={{ fontSize: '22px', color: 'red', marginTop: '10px', textAlign: 'center' }}>Error: {errorDetails}</p>}
       </div>
     ),
     intents: [
