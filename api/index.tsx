@@ -186,7 +186,6 @@ app.frame('/check', async (c) => {
   let usdValueDisplay = "";
   let priceUsd = 0;
   let errorDetails = "";
-  let address = "";
 
   try {
     if (!fid) {
@@ -200,9 +199,9 @@ app.frame('/check', async (c) => {
       console.error('Failed to fetch connected Ethereum addresses for FID:', fid);
       throw new Error('Unable to fetch connected Ethereum addresses');
     }
-    
+
     // Prioritize the most recently connected or active address
-    address = connectedAddresses[0];
+    const address = connectedAddresses[0];
     console.log('Using Ethereum address:', address);
 
     console.log('Fetching balance and price');
@@ -253,8 +252,6 @@ app.frame('/check', async (c) => {
         </div>
         <p style={{ fontSize: '42px', textAlign: 'center' }}>{balanceDisplay}</p>
         <p style={{ fontSize: '42px', textAlign: 'center' }}>{usdValueDisplay}</p>
-        <p style={{ fontSize: '32px', marginTop: '20px', textAlign: 'center' }}>Address: {address}</p>
-        <p style={{ fontSize: '32px', marginTop: '10px', textAlign: 'center' }}>Network: Polygon (Chain ID: {POLYGON_CHAIN_ID})</p>
         {priceUsd > 0 && <p style={{ fontSize: '26px', marginTop: '10px', textAlign: 'center' }}>Price: ${priceUsd.toFixed(8)} USD</p>}
         {errorDetails && <p style={{ fontSize: '18px', color: 'red', marginTop: '10px', textAlign: 'center' }}>Error: {errorDetails}</p>}
       </div>
