@@ -19,7 +19,7 @@ const GOLDIES_TOKEN_ADDRESS = '0x3150E01c36ad3Af80bA16C1836eFCD967E96776e';
 const ALCHEMY_POLYGON_URL = 'https://polygon-mainnet.g.alchemy.com/v2/pe-VGWmYoLZ0RjSXwviVMNIDLGwgfkao';
 const POLYGON_CHAIN_ID = 137;
 const AIRSTACK_API_URL = 'https://api.airstack.xyz/gql';
-const AIRSTACK_API_KEY = 'YOUR_AIRSTACK_API_KEY_HERE'; // Replace with your actual Airstack API key
+const AIRSTACK_API_KEY = '103ba30da492d4a7e89e7026a6d3a234e'; // Replace with your actual Airstack API key
 
 const ABI = [
   'function balanceOf(address account) view returns (uint256)',
