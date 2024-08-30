@@ -248,10 +248,10 @@ app.frame('/check', async (c) => {
               {displayName ? displayName.charAt(0).toUpperCase() : 'U'}
             </div>
           )}
-          <p style={{ fontSize: '32px', textAlign: 'center' }}>{displayName || `FID: ${fid}` || 'Unknown User'}</p>
+          <p style={{ fontSize: '40px', textAlign: 'center' }}>{displayName || `FID: ${fid}` || 'Unknown User'}</p>
         </div>
-        <p style={{ fontSize: '42px', textAlign: 'center' }}>{balanceDisplay}</p>
-        <p style={{ fontSize: '44px', textAlign: 'center' }}>{usdValueDisplay}</p>
+        <p style={{ fontSize: '52px', textAlign: 'center' }}>{balanceDisplay}</p>
+        <p style={{ fontSize: '48px', textAlign: 'center' }}>{usdValueDisplay}</p>
         {priceUsd > 0 && <p style={{ fontSize: '30px', marginTop: '10px', textAlign: 'center' }}>Price: ${priceUsd.toFixed(8)} USD</p>}
         {errorDetails && <p style={{ fontSize: '22px', color: 'red', marginTop: '10px', textAlign: 'center' }}>Error: {errorDetails}</p>}
       </div>
