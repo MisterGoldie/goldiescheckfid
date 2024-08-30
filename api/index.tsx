@@ -252,8 +252,8 @@ app.frame('/check', async (c) => {
         </div>
         <p style={{ fontSize: '52px', textAlign: 'center' }}>{balanceDisplay}</p>
         <p style={{ fontSize: '48px', textAlign: 'center' }}>{usdValueDisplay}</p>
-        {priceUsd > 0 && <p style={{ fontSize: '30px', marginTop: '10px', textAlign: 'center' }}>Price: ${priceUsd.toFixed(8)} USD</p>}
-        {errorDetails && <p style={{ fontSize: '22px', color: 'red', marginTop: '10px', textAlign: 'center' }}>Error: {errorDetails}</p>}
+        {priceUsd > 0 && <p style={{ fontSize: '34px', marginTop: '10px', textAlign: 'center' }}>Price: ${priceUsd.toFixed(8)} USD</p>}
+        {errorDetails && <p style={{ fontSize: '26px', color: 'red', marginTop: '10px', textAlign: 'center' }}>Error: {errorDetails}</p>}
       </div>
     ),
     intents: [
