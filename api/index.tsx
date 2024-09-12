@@ -235,7 +235,7 @@ app.frame('/check', async (c) => {
   const originalFramesLink = 'https://goldiescheckfid.vercel.app/api' // Replace with your actual Frames link
 
   // Construct the Farcaster share URL with both text and the embedded link
-  const farcasterShareURL = `https://warpcast.com/~/compose?text=Check%20out%20your%20$GOLDIES%20balance%20and%20make%20sure%20to%20follow%20@goldie%20on%20Farcaster!&embeds[]=${encodeURIComponent(originalFramesLink)}`
+  const farcasterShareURL = `https://warpcast.com/~/compose?text=Check%20your%20$GOLDIES%20balance%20and%20make%20sure%20to%20follow%20@goldie%20on%20Farcaster!&embeds[]=${encodeURIComponent(originalFramesLink)}`
 
 
   return c.res({
