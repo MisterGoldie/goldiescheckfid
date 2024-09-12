@@ -232,6 +232,10 @@ app.frame('/check', async (c) => {
     errorDetails = error instanceof Error ? `${error.name}: ${error.message}` : 'Unknown error';
   }
 
+  const shareText = `Check out my $GOLDIES balance on Polygon: ${balanceDisplay} ${usdValueDisplay}`;
+  const shareUrl = `https://goldies-tracker.vercel.app/api/share?fid=${fid}`; // Replace with your actual share URL
+  const farcasterShareURL = `https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(shareUrl)}`;
+
   return c.res({
     image: (
       <div style={{ 
@@ -272,8 +276,109 @@ app.frame('/check', async (c) => {
       <Button action="/">Back</Button>,
       <Button.Link href="https://polygonscan.com/token/0x3150e01c36ad3af80ba16c1836efcd967e96776e">Polygonscan</Button.Link>,
       <Button action="/check">Refresh</Button>,
-      <Button action="post_redirect">Share</Button>,
+      <Button.Link href={farcasterShareURL}>Share</Button.Link>,
     ],
+  });
+});
+
+app.frame('/share', async (c) => {
+  const fid = c.req.query('fid');
+  
+  if (!fid) {
+    return c.res({
+      image: (
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          width: '100%', 
+          height: '100%', 
+          backgroundColor: '#1DA1F2',
+          color: 'white',
+          fontFamily: 'Arial, sans-serif'
+        }}>
+          <h1 style={{ fontSize: '48px', marginBottom: '20px' }}>Error: No FID provided</h1>
+        </div>
+      ),
+      intents: [
+        <Button action="/check">Check Your Balance</Button>
+      ]
+    });
+  }
+
+  let balanceDisplay = "Unable to fetch balance";
+  let usdValueDisplay = "";
+  let priceUsd = 0;
+
+  try {
+    const connectedAddresses = await getConnectedAddresses(fid.toString());
+    if (connectedAddresses.length > 0) {
+      const address = connectedAddresses[0];
+      const balance = await getGoldiesBalance(address);
+      priceUsd = await getGoldiesUsdPrice();
+
+      const balanceNumber = parseFloat(balance);
+      balanceDisplay = balanceNumber === 0 
+        ? "You don't have any $GOLDIES tokens on Polygon yet!"
+        : `${balanceNumber.toLocaleString()} $GOLDIES`;
+
+      const usdValue = balanceNumber * priceUsd;
+      usdValueDisplay = `(~$${usdValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD)`;
+    }
+  } catch (error) {
+    console.error('Error fetching balance info:', error);
+  }
+
+  const backgroundImageUrl = 'https://amaranth-adequate-condor-278.mypinata.cloud/ipfs/Qme8LxFBeuJhKNdNV1M6BjRkYPDxQddo2eHiPhYaEdALvz';
+
+  return c.res({
+    image: (
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        width: '100%', 
+        height: '100%', 
+        backgroundImage: `url(${backgroundImageUrl})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        padding: '20px', 
+        boxSizing: 'border-box',
+        position: 'relative'
+      }}>
+        <div style={{
+          position: 'absolute',
+          top: '30px',
+          left: '20px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center'
+        }}>
+          <p style={{ 
+            fontSize: '30px', 
+            marginTop: '10px', 
+            color: 'black', 
+            textShadow: '2px 2px 4px rgba(0,0,0,0.5)'
+          }}>
+            FID: {fid}
+          </p>
+        </div>
+        
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <p style={{ fontSize: '50px', marginBottom: '10px', color: 'black', textShadow: '1px 1px 2px rgba(0,0,0,0.5)' }}>
+            {balanceDisplay}
+          </p>
+          <p style={{ fontSize: '55px', marginBottom: '10px', color: 'black', textShadow: '1px 1px 2px rgba(0,0,0,0.5)' }}>
+            {usdValueDisplay}
+          </p>
+        </div>
+      </div>
+    ),
+    intents: [
+      <Button action="/check">Check Your Balance</Button>
+    ]
   });
 });
 
