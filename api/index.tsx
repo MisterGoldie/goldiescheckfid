@@ -232,6 +232,10 @@ app.frame('/check', async (c) => {
     errorDetails = error instanceof Error ? `${error.name}: ${error.message}` : 'Unknown error';
   }
 
+  const shareText = `Check out my $GOLDIES balance on Polygon: ${balanceDisplay} ${usdValueDisplay}`;
+  const shareUrl = `https://goldies-tracker.vercel.app/api/share?fid=${fid}`; // Replace with your actual share URL
+  const farcasterShareURL = `https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(shareUrl)}`;
+
   return c.res({
     image: (
       <div style={{ 
@@ -272,6 +276,7 @@ app.frame('/check', async (c) => {
       <Button action="/">Back</Button>,
       <Button.Link href="https://polygonscan.com/token/0x3150e01c36ad3af80ba16c1836efcd967e96776e">Polygonscan</Button.Link>,
       <Button action="/check">Refresh</Button>,
+      <Button.Link href={farcasterShareURL}>Share</Button.Link>,
     ],
   });
 });
