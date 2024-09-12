@@ -232,8 +232,6 @@ app.frame('/check', async (c) => {
     errorDetails = error instanceof Error ? `${error.name}: ${error.message}` : 'Unknown error';
   }
 
-  const frameUrl = `https://goldiescheckfid.vercel.app/api/check?fid=${fid}`; // Replace with your actual frame URL
-
   return c.res({
     image: (
       <div style={{ 
@@ -274,7 +272,7 @@ app.frame('/check', async (c) => {
       <Button action="/">Back</Button>,
       <Button.Link href="https://polygonscan.com/token/0x3150e01c36ad3af80ba16c1836efcd967e96776e">Polygonscan</Button.Link>,
       <Button action="/check">Refresh</Button>,
-      <Button.Link href={frameUrl}>Share</Button.Link>,
+      <Button action="post_redirect">Share</Button>,
     ],
   });
 });
