@@ -233,7 +233,7 @@ app.frame('/check', async (c) => {
   }
 
   const shareText = `Check out my $GOLDIES balance on Polygon: ${balanceDisplay} ${usdValueDisplay}`;
-  const shareUrl = `https://goldies-tracker.vercel.app/api/share?fid=${fid}`; // Replace with your actual share URL
+  const shareUrl = `https://goldiescheckfid.vercel.app/api/share?fid=${fid}`; // Replace with your actual share URL
   const farcasterShareURL = `https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(shareUrl)}`;
 
   return c.res({
