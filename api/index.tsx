@@ -232,9 +232,11 @@ app.frame('/check', async (c) => {
     errorDetails = error instanceof Error ? `${error.name}: ${error.message}` : 'Unknown error';
   }
 
-  const shareText = `Check out my $GOLDIES balance on Polygon: ${balanceDisplay} ${usdValueDisplay}`;
-  const shareUrl = `https://goldiescheckfid.vercel.app/api/share?fid=${fid}`; // Replace with your actual share URL
-  const farcasterShareURL = `https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(shareUrl)}`;
+  const originalFramesLink = 'https://goldiescheckfid.vercel.app/api' // Replace with your actual Frames link
+
+  // Construct the Farcaster share URL with both text and the embedded link
+  const farcasterShareURL = `https://warpcast.com/~/compose?text=Check%20out%20your%20$GOLDIES%20balance%20and%20make%20sure%20to%20follow%20@goldie%20on%20Farcaster!&embeds[]=${encodeURIComponent(originalFramesLink)}`
+
 
   return c.res({
     image: (
@@ -276,7 +278,14 @@ app.frame('/check', async (c) => {
       <Button action="/">Back</Button>,
       <Button.Link href="https://polygonscan.com/token/0x3150e01c36ad3af80ba16c1836efcd967e96776e">Polygonscan</Button.Link>,
       <Button action="/check">Refresh</Button>,
-      <Button.Link href={farcasterShareURL}>Share</Button.Link>,
+       // Share Button with both text and link embedded
+       <Button.Link 
+       href={farcasterShareURL}
+     >
+       Share
+     </Button.Link>,  // This button now shares both text and the link
+ 
+      <Button action="/">Restart</Button>
     ],
   });
 });
