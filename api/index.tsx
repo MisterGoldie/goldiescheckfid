@@ -232,6 +232,10 @@ app.frame('/check', async (c) => {
     errorDetails = error instanceof Error ? `${error.name}: ${error.message}` : 'Unknown error';
   }
 
+  const shareText = `Check out my $GOLDIES balance on Polygon: ${balanceDisplay} ${usdValueDisplay}`;
+  const shareUrl = `https://goldiescheckfid.vercel.app/api/share?fid=${fid}`; // Replace with your actual share URL
+  const farcasterShareURL = `https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(shareUrl)}`;
+
   return c.res({
     image: (
       <div style={{ 
@@ -272,36 +276,7 @@ app.frame('/check', async (c) => {
       <Button action="/">Back</Button>,
       <Button.Link href="https://polygonscan.com/token/0x3150e01c36ad3af80ba16c1836efcd967e96776e">Polygonscan</Button.Link>,
       <Button action="/check">Refresh</Button>,
-      <Button action="/share">Share</Button>,
-    ],
-  });
-});
-
-app.frame('/share', (c) => {
-  const shareText = `Check out my $GOLDIES balance on Polygon using this Frame!`;
-
-  return c.res({
-    image: (
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: '100%',
-        height: '100%',
-        backgroundImage: 'url(https://amaranth-adequate-condor-278.mypinata.cloud/ipfs/Qme8LxFBeuJhKNdNV1M6BjRkYPDxQddo2eHiPhYaEdALvz)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        padding: '20px',
-        boxSizing: 'border-box',
-      }}>
-        <h1 style={{ fontSize: '60px', marginBottom: '20px', textAlign: 'center', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Share Your $GOLDIES Balance</h1>
-        <p style={{ fontSize: '36px', marginBottom: '20px', textAlign: 'center', color: 'white', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Click the button below to share this Frame with your followers!</p>
-      </div>
-    ),
-    intents: [
-      <Button action="/check">Back</Button>,
-      <Button.Reset>{shareText}</Button.Reset>,
+      <Button.Link href={farcasterShareURL}>Share</Button.Link>,
     ],
   });
 });
