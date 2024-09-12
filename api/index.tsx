@@ -279,11 +279,7 @@ app.frame('/check', async (c) => {
       <Button.Link href="https://polygonscan.com/token/0x3150e01c36ad3af80ba16c1836efcd967e96776e">Polygonscan</Button.Link>,
       <Button action="/check">Refresh</Button>,
        // Share Button with both text and link embedded
-       <Button.Link 
-       href={farcasterShareURL}
-     >
-       Share
-     </Button.Link>,  // This button now shares both text and the link
+       <Button.Link href={farcasterShareURL}>Share</Button.Link>,
  
       <Button action="/">Restart</Button>
     ],
