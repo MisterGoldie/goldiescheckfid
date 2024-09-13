@@ -234,9 +234,11 @@ app.frame('/check', async (c) => {
 
   const originalFramesLink = 'https://goldiescheckfid.vercel.app/api' // Replace with your actual Frames link
 
-  // Construct the Farcaster share URL with both text and the embedded link
-  const farcasterShareURL = `https://warpcast.com/~/compose?text=Check%20your%20$GOLDIES%20balance%20and%20make%20sure%20to%20follow%20@goldie%20on%20Farcaster!&embeds[]=${encodeURIComponent(originalFramesLink)}`
+  // Construct the share text with the user's balance
+  const shareText = `I have ${balanceDisplay} ${usdValueDisplay}. Check your $GOLDIES balance and make sure to follow @goldie on Farcaster!`;
 
+  // Construct the Farcaster share URL with both text and the embedded link
+  const farcasterShareURL = `https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(originalFramesLink)}`;
 
   return c.res({
     image: (
@@ -278,9 +280,8 @@ app.frame('/check', async (c) => {
       <Button action="/">Back</Button>,
       <Button.Link href="https://polygonscan.com/token/0x3150e01c36ad3af80ba16c1836efcd967e96776e">Polygonscan</Button.Link>,
       <Button action="/check">Refresh</Button>,
-       // Share Button with both text and link embedded
-       <Button.Link href={farcasterShareURL}>Share</Button.Link>,
- 
+      // Share Button with both text and link embedded
+      <Button.Link href={farcasterShareURL}>Share</Button.Link>,
       <Button action="/">Restart</Button>
     ],
   });
@@ -338,54 +339,54 @@ app.frame('/share', async (c) => {
   const backgroundImageUrl = 'https://amaranth-adequate-condor-278.mypinata.cloud/ipfs/Qme8LxFBeuJhKNdNV1M6BjRkYPDxQddo2eHiPhYaEdALvz';
 
   return c.res({
-    image: (
-      <div style={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        width: '100%', 
-        height: '100%', 
-        backgroundImage: `url(${backgroundImageUrl})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        padding: '20px', 
-        boxSizing: 'border-box',
-        position: 'relative'
-      }}>
-        <div style={{
-          position: 'absolute',
-          top: '30px',
-          left: '20px',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center'
+      image: (
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          width: '100%', 
+          height: '100%', 
+          backgroundImage: `url(${backgroundImageUrl})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          padding: '20px', 
+          boxSizing: 'border-box',
+          position: 'relative'
         }}>
-          <p style={{ 
-            fontSize: '30px', 
-            marginTop: '10px', 
-            color: 'black', 
-            textShadow: '2px 2px 4px rgba(0,0,0,0.5)'
+          <div style={{
+            position: 'absolute',
+            top: '30px',
+            left: '20px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center'
           }}>
-            FID: {fid}
-          </p>
+            <p style={{ 
+              fontSize: '30px', 
+              marginTop: '10px', 
+              color: 'black', 
+              textShadow: '2px 2px 4px rgba(0,0,0,0.5)'
+            }}>
+              FID: {fid}
+            </p>
+          </div>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <p style={{ fontSize: '50px', marginBottom: '10px', color: 'black', textShadow: '1px 1px 2px rgba(0,0,0,0.5)' }}>
+              {balanceDisplay}
+            </p>
+            <p style={{ fontSize: '55px', marginBottom: '10px', color: 'black', textShadow: '1px 1px 2px rgba(0,0,0,0.5)' }}>
+              {usdValueDisplay}
+            </p>
+          </div>
         </div>
-        
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <p style={{ fontSize: '50px', marginBottom: '10px', color: 'black', textShadow: '1px 1px 2px rgba(0,0,0,0.5)' }}>
-            {balanceDisplay}
-          </p>
-          <p style={{ fontSize: '55px', marginBottom: '10px', color: 'black', textShadow: '1px 1px 2px rgba(0,0,0,0.5)' }}>
-            {usdValueDisplay}
-          </p>
-        </div>
-      </div>
-    ),
-    intents: [
-      <Button action="/check">Check Your Balance</Button>
-    ]
+      ),
+      intents: [
+        <Button action="/check">Check Your Balance</Button>
+      ]
+    });
   });
-});
-
-export const GET = handle(app);
-export const POST = handle(app);
+  
+  export const GET = handle(app);
+  export const POST = handle(app);
