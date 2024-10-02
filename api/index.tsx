@@ -297,7 +297,7 @@ app.frame('/check', async (c) => {
 
 app.frame('/share', (c) => {
   const shareText = 'Play Tic-Tac-Toe with me! 🎮 Can you beat the AI?';
-  const baseUrl = 'https://podplay.vercel.app'; // Update this to your actual domain
+  const baseUrl = 'https://podplay.vercel.app';
   const originalFramesLink = `${baseUrl}/api`;
   
   // Construct the Farcaster share URL with both text and the embedded link
