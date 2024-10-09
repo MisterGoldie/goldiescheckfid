@@ -12,7 +12,7 @@ export const app = new Frog({ //Always include if using Airstack so it tracks mo
     apiUrl: "https://hubs.airstack.xyz",
     fetchOptions: {
       headers: {
-        "x-airstack-hubs": "103ba30da492d4a7e89e7026a6d3a234e", // Your Airstack API key
+        "x-airstack-hubs": "103ba30da492d4a7e89e7026a6d3a234e", // Your airstack API key
       }
     }
   }
