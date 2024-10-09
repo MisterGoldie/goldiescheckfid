@@ -298,34 +298,35 @@ app.frame('/check', async (c) => {
 
 app.frame('/share', async (c) => {
   const fid = c.req.query('fid');
-  
+
+  // Base64 encoded Lobster font (truncated for brevity)
+  const lobsterFontBase64 = "AAEAAAAPAIAAAwBgRkZUTXXNEQUAAWjoAAAAHEdERUYAGwAMAAFoyAAAACBHUE9TgZydwQABaOgAAAu4R1NVQgABAAAAAWkIAAAACk9TLzJjAmTHAAABeAAAAGBjbWFw1h77xgAAAjgAAAKEZ2FzcP//AAMAAWjAAAAACAAAAAQ1a3FvGaZ4UgAACowAAA28aGVhZPTSqvkAAAD8AAAANmhoZWEHywPyAAABNAAAACRobXR4UYAGswAAAbQAAADkbG9jYU9gWrAA... [truncated for brevity]";
+
   if (!fid) {
     return c.res({
       image: (
-        <div>
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '100%',
+          height: '100%',
+          backgroundColor: '#1DA1F2',
+          color: 'white',
+          fontFamily: 'Lobster, cursive'
+        }}>
           <style>
             {`
               @font-face {
                 font-family: 'Lobster';
-                src: url('https://fonts.gstatic.com/s/lobster/v28/neILzCirqoswsqX9zoKmM4MwWJU.woff2') format('woff2');
+                src: url(data:font/woff2;base64,${lobsterFontBase64}) format('woff2');
                 font-weight: 400;
                 font-style: normal;
               }
             `}
           </style>
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '100%',
-            height: '100%',
-            backgroundColor: '#1DA1F2',
-            color: 'white',
-            fontFamily: 'Lobster, cursive'
-          }}>
-            <h1 style={{ fontSize: '48px', marginBottom: '20px' }}>Error: No FID provided</h1>
-          </div>
+          <h1 style={{ fontSize: '48px', marginBottom: '20px' }}>Error: No FID provided</h1>
         </div>
       ),
       intents: [
@@ -361,70 +362,68 @@ app.frame('/share', async (c) => {
   
   return c.res({
     image: (
-      <div>
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '100%',
+        height: '100%',
+        backgroundImage: `url(${backgroundImageUrl})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        padding: '20px',
+        boxSizing: 'border-box',
+        position: 'relative'
+      }}>
         <style>
           {`
             @font-face {
               font-family: 'Lobster';
-              src: url('https://fonts.gstatic.com/s/lobster/v28/neILzCirqoswsqX9zoKmM4MwWJU.woff2') format('woff2');
+              src: url(data:font/woff2;base64,${lobsterFontBase64}) format('woff2');
               font-weight: 400;
               font-style: normal;
             }
           `}
         </style>
         <div style={{
+          position: 'absolute',
+          top: '30px',
+          left: '20px',
           display: 'flex',
           flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: '100%',
-          height: '100%',
-          backgroundImage: `url(${backgroundImageUrl})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          padding: '20px',
-          boxSizing: 'border-box',
-          position: 'relative'
+          alignItems: 'center'
         }}>
-          <div style={{
-            position: 'absolute',
-            top: '30px',
-            left: '20px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center'
+          <p style={{
+            fontSize: '30px',
+            marginTop: '10px',
+            color: 'black',
+            textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
+            fontFamily: 'Lobster, cursive'
           }}>
-            <p style={{
-              fontSize: '30px',
-              marginTop: '10px',
-              color: 'black',
-              textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
-              fontFamily: 'Lobster, cursive'
-            }}>
-              FID: {fid}
-            </p>
-          </div>
-          
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <p style={{ 
-              fontSize: '50px', 
-              marginBottom: '10px', 
-              color: 'black', 
-              textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
-              fontFamily: 'Lobster, cursive'
-            }}>
-              {balanceDisplay}
-            </p>
-            <p style={{ 
-              fontSize: '55px', 
-              marginBottom: '10px', 
-              color: 'black', 
-              textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
-              fontFamily: 'Lobster, cursive'
-            }}>
-              {usdValueDisplay}
-            </p>
-          </div>
+            FID: {fid}
+          </p>
+        </div>
+        
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <p style={{ 
+            fontSize: '50px', 
+            marginBottom: '10px', 
+            color: 'black', 
+            textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
+            fontFamily: 'Lobster, cursive'
+          }}>
+            {balanceDisplay}
+          </p>
+          <p style={{ 
+            fontSize: '55px', 
+            marginBottom: '10px', 
+            color: 'black', 
+            textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
+            fontFamily: 'Lobster, cursive'
+          }}>
+            {usdValueDisplay}
+          </p>
         </div>
       </div>
     ),
