@@ -4,8 +4,7 @@ import { ethers } from 'ethers';
 import fetch from 'node-fetch';
 import { neynar } from 'frog/middlewares';
 
-
-export const app = new Frog({ //Always include if using Airstack so it tracks moxie
+export const app = new Frog({
   basePath: '/api',
   imageOptions: { width: 1200, height: 628 },
   title: '$Goldies Token Tracker',
@@ -13,7 +12,7 @@ export const app = new Frog({ //Always include if using Airstack so it tracks mo
     apiUrl: "https://hubs.airstack.xyz",
     fetchOptions: {
       headers: {
-        "x-airstack-hubs": "103ba30da492d4a7e89e7026a6d3a234e", // Your Airstack API key
+        "x-airstack-hubs": "103ba30da492d4a7e89e7026a6d3a234e",
       }
     }
   }
@@ -158,6 +157,7 @@ app.frame('/', (c) => {
         backgroundPosition: 'center',
         padding: '20px',
         boxSizing: 'border-box',
+        fontFamily: 'Love Days, sans-serif',
       }}>
         <h1 style={{
           fontSize: '60px',
@@ -262,7 +262,8 @@ app.frame('/check', async (c) => {
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         padding: '20px', 
-        boxSizing: 'border-box' 
+        boxSizing: 'border-box',
+        fontFamily: 'Love Days, sans-serif',
       }}>
         <h1 style={{ fontSize: '60px', marginBottom: '20px', textAlign: 'center' }}>Your $GOLDIES Balance</h1>
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
@@ -289,7 +290,6 @@ app.frame('/check', async (c) => {
       <Button action="/">Back</Button>,
       <Button.Link href="https://polygonscan.com/token/0x3150e01c36ad3af80ba16c1836efcd967e96776e">Polygonscan</Button.Link>,
       <Button action="/check">Refresh</Button>,
-      // Share Button with both text and link embedded
       <Button.Link href={farcasterShareURL}>Share</Button.Link>,
       <Button action="/">Restart</Button>
     ],
@@ -298,34 +298,21 @@ app.frame('/check', async (c) => {
 
 app.frame('/share', async (c) => {
   const fid = c.req.query('fid');
-
-  // Base64 encoded Lobster font (truncated for brevity)
-  const lobsterFontBase64 = "AAEAAAAPAIAAAwBgRkZUTXXNEQUAAWjoAAAAHEdERUYAGwAMAAFoyAAAACBHUE9TgZydwQABaOgAAAu4R1NVQgABAAAAAWkIAAAACk9TLzJjAmTHAAABeAAAAGBjbWFw1h77xgAAAjgAAAKEZ2FzcP//AAMAAWjAAAAACAAAAAQ1a3FvGaZ4UgAACowAAA28aGVhZPTSqvkAAAD8AAAANmhoZWEHywPyAAABNAAAACRobXR4UYAGswAAAbQAAADkbG9jYU9gWrAA... [truncated for brevity]";
-
+  
   if (!fid) {
     return c.res({
       image: (
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: '100%',
-          height: '100%',
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          width: '100%', 
+          height: '100%', 
           backgroundColor: '#1DA1F2',
           color: 'white',
-          fontFamily: 'Lobster, cursive'
+          fontFamily: 'Love Days, sans-serif'
         }}>
-          <style>
-            {`
-              @font-face {
-                font-family: 'Lobster';
-                src: url(data:font/woff2;base64,${lobsterFontBase64}) format('woff2');
-                font-weight: 400;
-                font-style: normal;
-              }
-            `}
-          </style>
           <h1 style={{ fontSize: '48px', marginBottom: '20px' }}>Error: No FID provided</h1>
         </div>
       ),
@@ -334,104 +321,82 @@ app.frame('/share', async (c) => {
       ]
     });
   }
-  
+
   let balanceDisplay = "Unable to fetch balance";
   let usdValueDisplay = "";
   let priceUsd = 0;
-  
+
   try {
     const connectedAddresses = await getConnectedAddresses(fid.toString());
     if (connectedAddresses.length > 0) {
       const address = connectedAddresses[0];
       const balance = await getGoldiesBalance(address);
       priceUsd = await getGoldiesUsdPrice();
-      
+
       const balanceNumber = parseFloat(balance);
-      balanceDisplay = balanceNumber === 0
+      balanceDisplay = balanceNumber === 0 
         ? "You don't have any $GOLDIES tokens on Polygon yet!"
         : `${balanceNumber.toLocaleString()} $GOLDIES`;
-      
+
       const usdValue = balanceNumber * priceUsd;
       usdValueDisplay = `(~$${usdValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD)`;
     }
   } catch (error) {
     console.error('Error fetching balance info:', error);
   }
-  
+
   const backgroundImageUrl = 'https://amaranth-adequate-condor-278.mypinata.cloud/ipfs/Qme8LxFBeuJhKNdNV1M6BjRkYPDxQddo2eHiPhYaEdALvz';
-  
+
   return c.res({
-    image: (
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: '100%',
-        height: '100%',
-        backgroundImage: `url(${backgroundImageUrl})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        padding: '20px',
-        boxSizing: 'border-box',
-        position: 'relative'
-      }}>
-        <style>
-          {`
-            @font-face {
-              font-family: 'Lobster';
-              src: url(data:font/woff2;base64,${lobsterFontBase64}) format('woff2');
-              font-weight: 400;
-              font-style: normal;
-            }
-          `}
-        </style>
-        <div style={{
-          position: 'absolute',
-          top: '30px',
-          left: '20px',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center'
+      image: (
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          width: '100%', 
+          height: '100%', 
+          backgroundImage: `url(${backgroundImageUrl})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          padding: '20px', 
+          boxSizing: 'border-box',
+          position: 'relative',
+          fontFamily: 'Love Days, sans-serif',
         }}>
-          <p style={{
-            fontSize: '30px',
-            marginTop: '10px',
-            color: 'black',
-            textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
-            fontFamily: 'Lobster, cursive'
+          <div style={{
+            position: 'absolute',
+            top: '30px',
+            left: '20px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center'
           }}>
-            FID: {fid}
-          </p>
+            <p style={{ 
+              fontSize: '30px', 
+              marginTop: '10px', 
+              color: 'black', 
+              textShadow: '2px 2px 4px rgba(0,0,0,0.5)'
+            }}>
+              FID: {fid}
+            </p>
+          </div>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <p style={{ fontSize: '50px', marginBottom: '10px', color: 'black', textShadow: '1px 1px 2px rgba(0,0,0,0.5)' }}>
+              {balanceDisplay}
+            </p>
+            <p style={{ fontSize: '55px', marginBottom: '10px', color: 'black', textShadow: '1px 1px 2px rgba(0,0,0,0.5)' }}>
+              {usdValueDisplay}
+            </p>
+          </div>
         </div>
-        
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <p style={{ 
-            fontSize: '50px', 
-            marginBottom: '10px', 
-            color: 'black', 
-            textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
-            fontFamily: 'Lobster, cursive'
-          }}>
-            {balanceDisplay}
-          </p>
-          <p style={{ 
-            fontSize: '55px', 
-            marginBottom: '10px', 
-            color: 'black', 
-            textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
-            fontFamily: 'Lobster, cursive'
-          }}>
-            {usdValueDisplay}
-          </p>
-        </div>
-      </div>
-    ),
-    intents: [
-      <Button action="/check">Check Your Balance</Button>
-    ]
+      ),
+      intents: [
+        <Button action="/check">Check Your Balance</Button>
+      ]
+    });
   });
-});
   
   export const GET = handle(app);
   export const POST = handle(app);
