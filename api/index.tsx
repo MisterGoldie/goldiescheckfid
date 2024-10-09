@@ -4,6 +4,7 @@ import { ethers } from 'ethers';
 import fetch from 'node-fetch';
 import { neynar } from 'frog/middlewares';
 
+
 export const app = new Frog({ //Always include if using Airstack so it tracks moxie
   basePath: '/api',
   imageOptions: { width: 1200, height: 628 },
@@ -301,18 +302,30 @@ app.frame('/share', async (c) => {
   if (!fid) {
     return c.res({
       image: (
-        <div style={{ 
-          display: 'flex', 
-          flexDirection: 'column', 
-          alignItems: 'center', 
-          justifyContent: 'center', 
-          width: '100%', 
-          height: '100%', 
-          backgroundColor: '#1DA1F2',
-          color: 'white',
-          fontFamily: 'Arial, sans-serif'
-        }}>
-          <h1 style={{ fontSize: '48px', marginBottom: '20px' }}>Error: No FID provided</h1>
+        <div>
+          <style>
+            {`
+              @font-face {
+                font-family: 'Lobster';
+                src: url('https://fonts.gstatic.com/s/lobster/v28/neILzCirqoswsqX9zoKmM4MwWJU.woff2') format('woff2');
+                font-weight: 400;
+                font-style: normal;
+              }
+            `}
+          </style>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '100%',
+            height: '100%',
+            backgroundColor: '#1DA1F2',
+            color: 'white',
+            fontFamily: 'Lobster, cursive'
+          }}>
+            <h1 style={{ fontSize: '48px', marginBottom: '20px' }}>Error: No FID provided</h1>
+          </div>
         </div>
       ),
       intents: [
@@ -320,45 +333,56 @@ app.frame('/share', async (c) => {
       ]
     });
   }
-
+  
   let balanceDisplay = "Unable to fetch balance";
   let usdValueDisplay = "";
   let priceUsd = 0;
-
+  
   try {
     const connectedAddresses = await getConnectedAddresses(fid.toString());
     if (connectedAddresses.length > 0) {
       const address = connectedAddresses[0];
       const balance = await getGoldiesBalance(address);
       priceUsd = await getGoldiesUsdPrice();
-
+      
       const balanceNumber = parseFloat(balance);
-      balanceDisplay = balanceNumber === 0 
+      balanceDisplay = balanceNumber === 0
         ? "You don't have any $GOLDIES tokens on Polygon yet!"
         : `${balanceNumber.toLocaleString()} $GOLDIES`;
-
+      
       const usdValue = balanceNumber * priceUsd;
       usdValueDisplay = `(~$${usdValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD)`;
     }
   } catch (error) {
     console.error('Error fetching balance info:', error);
   }
-
+  
   const backgroundImageUrl = 'https://amaranth-adequate-condor-278.mypinata.cloud/ipfs/Qme8LxFBeuJhKNdNV1M6BjRkYPDxQddo2eHiPhYaEdALvz';
-
+  
   return c.res({
-      image: (
-        <div style={{ 
-          display: 'flex', 
-          flexDirection: 'column', 
-          alignItems: 'center', 
-          justifyContent: 'center', 
-          width: '100%', 
-          height: '100%', 
+    image: (
+      <div>
+        <style>
+          {`
+            @font-face {
+              font-family: 'Lobster';
+              src: url('https://fonts.gstatic.com/s/lobster/v28/neILzCirqoswsqX9zoKmM4MwWJU.woff2') format('woff2');
+              font-weight: 400;
+              font-style: normal;
+            }
+          `}
+        </style>
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '100%',
+          height: '100%',
           backgroundImage: `url(${backgroundImageUrl})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
-          padding: '20px', 
+          padding: '20px',
           boxSizing: 'border-box',
           position: 'relative'
         }}>
@@ -370,31 +394,45 @@ app.frame('/share', async (c) => {
             flexDirection: 'column',
             alignItems: 'center'
           }}>
-            <p style={{ 
-              fontSize: '30px', 
-              marginTop: '10px', 
-              color: 'black', 
-              textShadow: '2px 2px 4px rgba(0,0,0,0.5)'
+            <p style={{
+              fontSize: '30px',
+              marginTop: '10px',
+              color: 'black',
+              textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
+              fontFamily: 'Lobster, cursive'
             }}>
               FID: {fid}
             </p>
           </div>
           
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <p style={{ fontSize: '50px', marginBottom: '10px', color: 'black', textShadow: '1px 1px 2px rgba(0,0,0,0.5)' }}>
+            <p style={{ 
+              fontSize: '50px', 
+              marginBottom: '10px', 
+              color: 'black', 
+              textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
+              fontFamily: 'Lobster, cursive'
+            }}>
               {balanceDisplay}
             </p>
-            <p style={{ fontSize: '55px', marginBottom: '10px', color: 'black', textShadow: '1px 1px 2px rgba(0,0,0,0.5)' }}>
+            <p style={{ 
+              fontSize: '55px', 
+              marginBottom: '10px', 
+              color: 'black', 
+              textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
+              fontFamily: 'Lobster, cursive'
+            }}>
               {usdValueDisplay}
             </p>
           </div>
         </div>
-      ),
-      intents: [
-        <Button action="/check">Check Your Balance</Button>
-      ]
-    });
+      </div>
+    ),
+    intents: [
+      <Button action="/check">Check Your Balance</Button>
+    ]
   });
+});
   
   export const GET = handle(app);
   export const POST = handle(app);
