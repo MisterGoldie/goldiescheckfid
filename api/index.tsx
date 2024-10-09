@@ -4,19 +4,18 @@ import { ethers } from 'ethers';
 import fetch from 'node-fetch';
 import { neynar } from 'frog/middlewares';
 
-const fontFace = `
-  @font-face {
-    font-family: 'Sixtyfour Convergence';
-    font-style: normal;
-    font-weight: 400;
-    src: url(https://fonts.gstatic.com/s/sixtyfourconvergence/v1/KFOjCneDWn7m7-Yd9Nf8zcpWb45oIXS_Lq7JCA_Ggq6.woff2) format('woff2');
-    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-  }
-`;
-
-export const app = new Frog({ //Always include if using Airstack so it tracks moxie
+export const app = new Frog({
+  imageOptions: {
+    width: 1200, height: 628,  
+ fonts: [
+      {
+        name: 'Sixtyfour Convergence',
+        source: 'google',
+        weight: 400,
+      },
+    ],
+  },
   basePath: '/api',
-  imageOptions: { width: 1200, height: 628 },
   title: '$Goldies Token Tracker',
   hub: {
     apiUrl: "https://hubs.airstack.xyz",
@@ -169,7 +168,6 @@ app.frame('/', (c) => {
         boxSizing: 'border-box',
         fontFamily: '"Sixtyfour Convergence", sans-serif',
       }}>
-        <style>{fontFace}</style>
         <h1 style={{
           fontSize: '60px',
           marginBottom: '20px',
@@ -276,7 +274,6 @@ app.frame('/check', async (c) => {
         boxSizing: 'border-box',
         fontFamily: '"Sixtyfour Convergence", sans-serif',
       }}>
-        <style>{fontFace}</style>
         <h1 style={{ fontSize: '60px', marginBottom: '20px', textAlign: 'center' }}>Your $GOLDIES Balance</h1>
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
           {pfpUrl ? (
@@ -377,7 +374,6 @@ app.frame('/share', async (c) => {
           position: 'relative',
           fontFamily: '"Sixtyfour Convergence", sans-serif',
         }}>
-          <style>{fontFace}</style>
           <div style={{
             position: 'absolute',
             top: '30px',
