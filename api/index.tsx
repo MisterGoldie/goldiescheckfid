@@ -4,7 +4,7 @@ import { ethers } from 'ethers';
 import fetch from 'node-fetch';
 import { neynar } from 'frog/middlewares';
 
-export const app = new Frog({
+export const app = new Frog({ //Always include if using Airstack so it tracks moxie
   basePath: '/api',
   imageOptions: { width: 1200, height: 628 },
   title: '$Goldies Token Tracker',
@@ -12,7 +12,7 @@ export const app = new Frog({
     apiUrl: "https://hubs.airstack.xyz",
     fetchOptions: {
       headers: {
-        "x-airstack-hubs": "103ba30da492d4a7e89e7026a6d3a234e",
+        "x-airstack-hubs": "103ba30da492d4a7e89e7026a6d3a234e", // Your Airstack API key
       }
     }
   }
@@ -157,7 +157,6 @@ app.frame('/', (c) => {
         backgroundPosition: 'center',
         padding: '20px',
         boxSizing: 'border-box',
-        fontFamily: 'Love Days, sans-serif',
       }}>
         <h1 style={{
           fontSize: '60px',
@@ -262,8 +261,7 @@ app.frame('/check', async (c) => {
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         padding: '20px', 
-        boxSizing: 'border-box',
-        fontFamily: 'Love Days, sans-serif',
+        boxSizing: 'border-box' 
       }}>
         <h1 style={{ fontSize: '60px', marginBottom: '20px', textAlign: 'center' }}>Your $GOLDIES Balance</h1>
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
@@ -290,6 +288,7 @@ app.frame('/check', async (c) => {
       <Button action="/">Back</Button>,
       <Button.Link href="https://polygonscan.com/token/0x3150e01c36ad3af80ba16c1836efcd967e96776e">Polygonscan</Button.Link>,
       <Button action="/check">Refresh</Button>,
+      // Share Button with both text and link embedded
       <Button.Link href={farcasterShareURL}>Share</Button.Link>,
       <Button action="/">Restart</Button>
     ],
@@ -311,7 +310,7 @@ app.frame('/share', async (c) => {
           height: '100%', 
           backgroundColor: '#1DA1F2',
           color: 'white',
-          fontFamily: 'Love Days, sans-serif'
+          fontFamily: 'Arial, sans-serif'
         }}>
           <h1 style={{ fontSize: '48px', marginBottom: '20px' }}>Error: No FID provided</h1>
         </div>
@@ -361,8 +360,7 @@ app.frame('/share', async (c) => {
           backgroundPosition: 'center',
           padding: '20px', 
           boxSizing: 'border-box',
-          position: 'relative',
-          fontFamily: 'Love Days, sans-serif',
+          position: 'relative'
         }}>
           <div style={{
             position: 'absolute',
