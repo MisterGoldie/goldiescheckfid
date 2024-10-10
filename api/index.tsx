@@ -9,7 +9,7 @@ export const app = new Frog({
     width: 1200, height: 628,  
  fonts: [
       {
-        name: 'Barrio',
+        name: 'Gloria Hallelujah',
         source: 'google',
         weight: 400,
       },
@@ -166,7 +166,7 @@ app.frame('/', (c) => {
         backgroundPosition: 'center',
         padding: '20px',
         boxSizing: 'border-box',
-        fontFamily: '"Barrio", sans-serif',
+        fontFamily: '"Gloria Hallelujah", cursive',
       }}>
         <h1 style={{
           fontSize: '60px',
@@ -272,7 +272,7 @@ app.frame('/check', async (c) => {
         backgroundPosition: 'center',
         padding: '20px', 
         boxSizing: 'border-box',
-        fontFamily: '"Barrio", sans-serif',
+        fontFamily: '"Gloria Hallelujah", cursive',
       }}>
         <h1 style={{ fontSize: '60px', marginBottom: '20px', textAlign: 'center' }}>Your $GOLDIES Balance</h1>
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
@@ -372,7 +372,7 @@ app.frame('/share', async (c) => {
           padding: '20px', 
           boxSizing: 'border-box',
           position: 'relative',
-          fontFamily: '"Barrio", sans-serif',
+          fontFamily: '"Gloria Hallelujah", cursive',
         }}>
           <div style={{
             position: 'absolute',
